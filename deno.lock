@@ -3,7 +3,7 @@
   "specifiers": {
     "npm:@eslint/compat@^1.2.5": "1.2.7_eslint@9.19.0",
     "npm:@eslint/js@^9.18.0": "9.19.0",
-    "npm:@jsr/muni-town__leaf@0.2.0-preview.6": "0.2.0-preview.6",
+    "npm:@jsr/muni-town__leaf@0.2.0-preview.7": "0.2.0-preview.7",
     "npm:@sveltejs/adapter-auto@4": "4.0.0_@sveltejs+kit@2.19.0__@sveltejs+vite-plugin-svelte@5.0.3___svelte@5.23.0____acorn@8.14.1___vite@6.2.2____lightningcss@1.29.2__svelte@5.23.0___acorn@8.14.1__vite@6.2.2___lightningcss@1.29.2_@sveltejs+vite-plugin-svelte@5.0.3__svelte@5.23.0___acorn@8.14.1__vite@6.2.2___lightningcss@1.29.2_svelte@5.23.0__acorn@8.14.1_vite@6.2.2__lightningcss@1.29.2",
     "npm:@sveltejs/kit@^2.16.0": "2.19.0_@sveltejs+vite-plugin-svelte@5.0.3__svelte@5.23.0___acorn@8.14.1__vite@6.2.2___lightningcss@1.29.2_svelte@5.23.0__acorn@8.14.1_vite@6.2.2__lightningcss@1.29.2",
     "npm:@sveltejs/vite-plugin-svelte@5": "5.0.3_svelte@5.23.0__acorn@8.14.1_vite@6.2.2__lightningcss@1.29.2",
@@ -217,8 +217,8 @@
         "@jridgewell/sourcemap-codec"
       ]
     },
-    "@jsr/muni-town__leaf@0.2.0-preview.6": {
-      "integrity": "sha512-PrePEnXxEiJTSQsyFLv3pj8NvYEZuuNCC1lNVYKo58ct/o349tr5ldPQMNImfX7IiVhqzHFezGDZVa0E3JMfZg==",
+    "@jsr/muni-town__leaf@0.2.0-preview.7": {
+      "integrity": "sha512-b/TFIAUQTl68aC64gqrg2WzmqEpARkX19Cq53MkDv8HntUwmwtrhni810BGc6Yb4jWIjq3yP6yi5eo2pktUa5w==",
       "dependencies": [
         "@jsr/std__fs",
         "@jsr/std__path",
@@ -1568,7 +1568,7 @@
       "dependencies": [
         "npm:@eslint/compat@^1.2.5",
         "npm:@eslint/js@^9.18.0",
-        "npm:@jsr/muni-town__leaf@0.2.0-preview.6",
+        "npm:@jsr/muni-town__leaf@0.2.0-preview.7",
         "npm:@sveltejs/adapter-auto@4",
         "npm:@sveltejs/kit@^2.16.0",
         "npm:@sveltejs/vite-plugin-svelte@5",

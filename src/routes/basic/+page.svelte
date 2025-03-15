@@ -1,19 +1,18 @@
 <script module lang="ts">
-	import { EntityId, type EntityIdStr, Entity } from '@muni-town/leaf';
+	import { EntityId, type EntityIdStr, Entity, LoroCounter } from '@muni-town/leaf';
 	import { SveltePeer } from '@muni-town/leaf/svelte';
 	import { DemoCounter } from '$lib/components';
 	import { webSocketSyncer } from '@muni-town/leaf/sync1/ws-client';
 
 	let peer: SveltePeer | undefined = $state();
 	let entity: Entity | undefined = $state();
-	console.log('Connecting to websocket server');
-	webSocketSyncer(new WebSocket('ws://localhost:8096')).then(async (syncer) => {
-		console.log('Connecting to websocket');
+	let counter: LoroCounter | undefined = $state();
+	webSocketSyncer(new WebSocket('ws://localhost:8095')).then(async (syncer) => {
 		peer = new SveltePeer(syncer);
 
 		const entityId = new EntityId((window.location.hash.slice(1) as EntityIdStr) || undefined);
-		console.log(entityId);
 		entity = await peer.open(entityId);
+		counter = entity.getOrInit(DemoCounter);
 
 		if (window.location.hash.length <= 1) {
 			window.location.replace(`#${entityId.toString()}`);
@@ -21,11 +20,11 @@
 	});
 
 	function increment() {
-		entity?.getOrInit(DemoCounter).increment(1);
+		counter?.increment(1);
 		entity?.commit();
 	}
 	function decrement() {
-		entity?.getOrInit(DemoCounter).decrement(1);
+		counter?.decrement(1);
 		entity?.commit();
 	}
 </script>
@@ -40,7 +39,7 @@
 	<div class="m-5 flex items-center gap-4">
 		<strong>Counter:</strong>
 		<button class="cursor-pointer border-2 border-solid p-1" onclick={decrement}>-</button>
-		<div class="border-2 border-solid p-2">{entity.getOrInit(DemoCounter).value}</div>
+		<div class="border-2 border-solid p-2">{counter?.value}</div>
 		<button class="cursor-pointer border-2 border-solid p-1" onclick={increment}>+</button>
 	</div>
 {:else}
