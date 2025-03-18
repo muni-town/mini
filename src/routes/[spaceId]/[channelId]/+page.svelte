@@ -45,7 +45,7 @@
 	$effect(() => {
 		unsubscribeDoc();
 		if (g.channel) {
-			unsubscribeDoc = g.channel.entity.doc.subscribe(focusAndScroll);
+			unsubscribeDoc = g.channel.subscribe(focusAndScroll);
 		}
 	});
 
