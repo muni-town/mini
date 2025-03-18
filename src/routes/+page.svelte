@@ -1,13 +1,17 @@
-<h1 class="font-bold text-3xl mb-5">Examples</h1>
+<script lang="ts">
+	import { roomy, g } from '$lib/roomy.svelte';
+	import { Space } from '@roomy-chat/sdk';
 
-<ul class="list-disc ml-8">
-    <li><a href="/basic">Basic</a></li>
-</ul>
+	g.space = undefined;
 
-<style>
-    @reference "../app.css";
+	async function createSpace() {
+		const space = await roomy.create(Space);
+		space.name = 'New Space';
+		space.commit();
 
-    a {
-        @apply text-blue-500 underline;
-    }
-</style>
+		roomy.spaces.push(space);
+		roomy.commit();
+	}
+</script>
+
+<button class="btn btn-xl m-auto" onclick={createSpace}>Create Space</button>

@@ -1,6 +1,7 @@
 @import 'tailwindcss';
 @plugin '@tailwindcss/typography';
+@plugin "daisyui";
 
-body {
-    @apply p-8;
+html {
+    @apply bg-base-300;
 }
