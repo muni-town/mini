@@ -1,4 +1,4 @@
-import { Channel, EntityId, type EntityIdStr, Roomy, Space } from '@roomy-chat/sdk';
+import { Channel, EntityId, type EntityIdStr, NamedEntity, Roomy, Space } from '@roomy-chat/sdk';
 import { StorageManager } from '@muni-town/leaf/storage';
 import { SveltePeer } from '@muni-town/leaf/svelte';
 import { indexedDBStorageAdapter } from '@muni-town/leaf/storage/indexed-db';
@@ -20,3 +20,15 @@ export const g = $state({
 	/** The currently selected channel. */
 	channel: undefined as Channel | undefined
 });
+
+let users = $state({}) as { [uri: string]: NamedEntity | undefined };
+export function getUser(uri: string): NamedEntity | undefined {
+	const user = users[uri];
+
+	queueMicrotask(async () => {
+		if (users[uri]) return;
+		users[uri] = await roomy.open(NamedEntity, uri as EntityIdStr);
+	});
+
+	return user;
+}

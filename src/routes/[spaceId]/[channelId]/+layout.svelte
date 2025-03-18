@@ -25,6 +25,6 @@
 	});
 </script>
 
-<div class="bg-base-100 flex h-full w-full p-4 shadow-sm">
+<div class="bg-base-100 flex h-full max-h-full w-full p-4 shadow-sm">
 	{@render children()}
 </div>
