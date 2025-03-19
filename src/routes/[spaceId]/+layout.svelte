@@ -2,18 +2,12 @@
 	import { goto } from '$app/navigation';
 	import { page } from '$app/state';
 	import { roomy, g } from '$lib/roomy.svelte';
+	import { derivePromise } from '$lib/utils.svelte';
 	import { Channel, Space, type EntityIdStr } from '@roomy-chat/sdk';
 
 	let { children } = $props();
 
-	let channels = $state([]) as Channel[];
-	$effect(() => {
-		if (g.space) {
-			g.space.channels.items().then((s) => (channels = s));
-		} else {
-			channels = [];
-		}
-	});
+	let channels = derivePromise([], async () => (g.space ? await g.space.channels.items() : []));
 
 	$effect(() => {
 		const spaceId = page.params.spaceId;
@@ -37,7 +31,7 @@
 	<h1 class="text-2xl font-bold">{g.space?.name}</h1>
 	<div class="divider my-1"></div>
 	<div class="flex flex-col gap-3">
-		{#each channels as channel (channel.id)}
+		{#each channels.value as channel (channel.id)}
 			<a
 				href={`/${page.params.spaceId}/${channel.id}`}
 				class={['btn', channel.id == g.channel?.id && 'btn-active']}

@@ -13,14 +13,12 @@
 		"format": "prettier --write .",
 		"lint": "prettier --check . && eslint ."
 	},
-	"dependencies": {
-	},
 	"devDependencies": {
 		"@dicebear/collection": "^9.2.2",
 		"@dicebear/core": "^9.2.2",
-		"@roomy-chat/sdk": "file:../roomy-sdk",
+		"@roomy-chat/sdk": "npm:@jsr/roomy-chat__sdk@0.1.0-preview.6",
+		"@muni-town/leaf": "npm:@jsr/muni-town__leaf@0.2.0-preview.12",
 		"daisyui": "^5.0.6",
-		"@muni-town/leaf": "file:../leaf",
 		"@eslint/compat": "^1.2.5",
 		"@eslint/js": "^9.18.0",
 		"@sveltejs/adapter-auto": "^4.0.0",

@@ -13,6 +13,7 @@ const peer = new SveltePeer(
 	await webSocketSyncer(new WebSocket('ws://localhost:8095'))
 );
 export const roomy = await Roomy.init(peer, catalogId);
+(window as any).roomy = roomy;
 
 export const g = $state({
 	/** The currently selected space. */
@@ -20,6 +21,7 @@ export const g = $state({
 	/** The currently selected channel. */
 	channel: undefined as Channel | undefined
 });
+(window as any).g = g;
 
 let users = $state({}) as { [uri: string]: NamedEntity | undefined };
 export function getUser(uri: string): NamedEntity | undefined {

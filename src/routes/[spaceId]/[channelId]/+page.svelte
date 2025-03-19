@@ -4,20 +4,14 @@
 	import { Message } from '@roomy-chat/sdk';
 	import { onMount } from 'svelte';
 	import ShapesAvatar from '$lib/components/ShapesAvatar.svelte';
+	import { derivePromise } from '$lib/utils.svelte';
 
 	let messageInput = $state('');
 	let nameInput = $state('');
 	$effect(() => {
 		nameInput = g.channel?.name || '';
 	});
-	let messages = $state([]) as Message[];
-	$effect(() => {
-		if (g.channel) {
-			g.channel.messages.items().then((mgs) => (messages = mgs));
-		} else {
-			messages = [];
-		}
-	});
+	let messages = derivePromise([], async () => (g.channel ? await g.channel.messages.items() : []));
 
 	function saveInfo() {
 		if (!g.channel) return;
@@ -70,7 +64,7 @@
 
 	<div class="flex h-full max-h-full flex-grow flex-col">
 		<div bind:this={messagesEl} class="h-0 min-h-0 flex-grow overflow-y-auto">
-			{#each messages as message}
+			{#each messages.value as message}
 				<div class="flex gap-2 p-2">
 					<div>
 						<div class="avatar w-12">

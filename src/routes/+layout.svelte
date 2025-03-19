@@ -4,11 +4,9 @@
 
 	import ShapesAvatar from '$lib/components/ShapesAvatar.svelte';
 	import { Space, NamedEntity } from '@roomy-chat/sdk';
+	import { derivePromise } from '$lib/utils.svelte';
 
-	let spaces = $state([]) as Space[];
-	$effect(() => {
-		roomy.spaces.items().then((s) => (spaces = s));
-	});
+	let spaces = derivePromise([], () => roomy.spaces.items());
 
 	let usernameInput = $state('');
 	$effect(() => {
@@ -26,7 +24,7 @@
 	<div>
 		<div class="navbar bg-base-100 gap-2 shadow-sm">
 			<div class="flex-1">
-				<a class="btn btn-ghost text-xl" href="/">Mini Chat</a>
+				<a class="btn btn-ghost text-xl" href="/">Mini Chat {spaces.value.length}</a>
 			</div>
 
 			<form onsubmit={setUsername}>
@@ -42,7 +40,7 @@
 
 	<div class="flex max-h-full min-h-0 flex-grow flex-nowrap gap-4">
 		<div class="bg-base-100 flex w-20 flex-col gap-4 p-4 shadow-sm">
-			{#each spaces as space (space.id)}
+			{#each spaces.value as space (space.id)}
 				<div class="tooltip tooltip-right" data-tip={space.name}>
 					<a href={`/${space.id}`}>
 						<div class="avatar transition-all hover:scale-110">
