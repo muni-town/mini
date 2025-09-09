@@ -16,9 +16,6 @@
 	"devDependencies": {
 		"@dicebear/collection": "^9.2.2",
 		"@dicebear/core": "^9.2.2",
-		"@roomy-chat/sdk": "npm:@jsr/roomy-chat__sdk@0.1.0-preview.6",
-		"@muni-town/leaf": "npm:@jsr/muni-town__leaf@0.2.0-preview.12",
-		"daisyui": "^5.0.6",
 		"@eslint/compat": "^1.2.5",
 		"@eslint/js": "^9.18.0",
 		"@sveltejs/adapter-auto": "^4.0.0",
@@ -26,6 +23,8 @@
 		"@sveltejs/vite-plugin-svelte": "^5.0.0",
 		"@tailwindcss/typography": "^0.5.15",
 		"@tailwindcss/vite": "^4.0.0",
+		"daisyui": "^5.0.6",
+		"dexie": "^4.2.0",
 		"eslint": "^9.18.0",
 		"eslint-config-prettier": "^10.0.1",
 		"eslint-plugin-svelte": "^3.0.0",
@@ -41,5 +40,9 @@
 		"vite": "^6.0.0",
 		"vite-plugin-top-level-await": "^1.5.0",
 		"vite-plugin-wasm": "^3.4.1"
+	},
+	"dependencies": {
+		"@atproto/api": "^0.16.7",
+		"@atproto/oauth-client-browser": "^0.3.31"
 	}
 }
