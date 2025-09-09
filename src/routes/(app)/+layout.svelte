@@ -1,13 +1,8 @@
 <script lang="ts">
+	import '$lib/init';
 	import './app.css';
-
-	import ShapesAvatar from '$lib/components/ShapesAvatar.svelte';
 	import { atproto } from '$lib/atproto.svelte';
-	import { onMount } from 'svelte';
-
-	onMount(() => {
-		atproto.init();
-	});
+	import { backend } from '$lib/backend';
 
 	let loginHandle = $state('');
 
@@ -22,13 +17,13 @@
 			</div>
 
 			{atproto.profile?.handle}
-			<div class="avatar w-12">
-				<button class="rounded" title="logout" onclick={() => atproto.logout()}>
+			<button title="logout" onclick={() => atproto.logout()}>
+				<div class="avatar w-12 overflow-clip rounded-full">
 					{#key atproto.agent?.did}
-						<ShapesAvatar class="w-full" seed={atproto.agent?.did || ''} />
+						<img alt="avatar" src={atproto.profile?.avatar} />
 					{/key}
-				</button>
-			</div>
+				</div>
+			</button>
 		</div>
 	</div>
 
@@ -48,7 +43,8 @@
 		</div>
 
 		{#if atproto.agent}
-			{@render children()}
+			<button onclick={() => backend.port.postMessage('hello button')}>Send message</button>
+			<!-- {@render children()} -->
 		{:else}
 			<div class="flex w-full flex-col items-center justify-center">
 				<h2 class="mb-3 text-xl font-bold">Login With Bluesky / ATProto Handle</h2>
