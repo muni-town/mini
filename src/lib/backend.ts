@@ -1,19 +1,19 @@
-import { atproto } from './atproto.svelte';
+import type { ProfileViewDetailed } from '@atproto/api/dist/client/types/app/bsky/actor/defs';
 import BackendWorker from './backendWorker.ts?sharedworker';
+import { messagePortInterface } from './messagePortInterface';
 
-export type MessageToWorker = { type: 'serviceAuth'; token: string } | { type: 'logout' };
-export type MessageFromWorker = { type: 'requestServiceAuth'; aud: string };
+// eslint-disable-next-line @typescript-eslint/no-empty-object-type
+export type FrontendInterface = {};
+
+export type BackendInterface = {
+	login(username: string): Promise<string>;
+	logout(): Promise<void>;
+	oauthCallback(searchParams: string): Promise<void>;
+	getProfile(did?: string): Promise<ProfileViewDetailed | undefined>;
+	getDid(): Promise<string | undefined>;
+};
 
 // Initialize shared worker
-export const backend = new BackendWorker({ name: 'mini-backend' });
-backend.port.onmessage = async (m: MessageEvent<MessageFromWorker>) => {
-	if (m.data.type == 'requestServiceAuth') {
-		const resp = await atproto.agent?.com.atproto.server.getServiceAuth({
-			aud: m.data.aud
-		});
-		const token = resp?.data.token;
-		if (token) {
-			backend.port.postMessage({ token, type: 'serviceAuth' } satisfies MessageToWorker);
-		}
-	}
-};
+const worker = new BackendWorker({ name: 'mini-backend' });
+
+export const backend = messagePortInterface<FrontendInterface, BackendInterface>(worker.port, {});

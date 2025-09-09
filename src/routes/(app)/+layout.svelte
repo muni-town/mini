@@ -1,7 +1,6 @@
 <script lang="ts">
-	import '$lib/init';
 	import './app.css';
-	import { atproto } from '$lib/atproto.svelte';
+	import { user } from '$lib/user';
 	import { backend } from '$lib/backend';
 
 	let loginHandle = $state('');
@@ -16,14 +15,20 @@
 				<a class="btn btn-ghost text-xl" href="/">Mini Chat {[].length}</a>
 			</div>
 
-			{atproto.profile?.handle}
-			<button title="logout" onclick={() => atproto.logout()}>
-				<div class="avatar w-12 overflow-clip rounded-full">
-					{#key atproto.agent?.did}
-						<img alt="avatar" src={atproto.profile?.avatar} />
-					{/key}
-				</div>
-			</button>
+			{#if !user.profileLoading}
+				{#if user.profile}
+					{user.profile.handle}
+					<button title="logout" onclick={backend.logout}>
+						<div class="avatar w-12 overflow-clip rounded-full">
+							{#key user.profile?.did}
+								<img alt="avatar" src={user.profile?.avatar} />
+							{/key}
+						</div>
+					</button>
+				{/if}
+			{:else}
+				Loading...
+			{/if}
 		</div>
 	</div>
 
@@ -42,13 +47,22 @@
 			{/each} -->
 		</div>
 
-		{#if atproto.agent}
-			<button onclick={() => backend.port.postMessage('hello button')}>Send message</button>
+		{#if user.didLoading}
+			Loading...
+		{:else if user.did}
+			<button>Send message</button>
+			<!-- {JSON.stringify(user.profile)} -->
 			<!-- {@render children()} -->
 		{:else}
 			<div class="flex w-full flex-col items-center justify-center">
 				<h2 class="mb-3 text-xl font-bold">Login With Bluesky / ATProto Handle</h2>
-				<form class="flex flex-col gap-3" onsubmit={() => atproto.loginWithHandle(loginHandle)}>
+				<form
+					class="flex flex-col gap-3"
+					onsubmit={async () => {
+						const redirect = await backend.login(loginHandle);
+						window.location.href = redirect;
+					}}
+				>
 					<label>
 						Handle
 						<input class="input" bind:value={loginHandle} />
