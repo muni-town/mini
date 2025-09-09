@@ -18,7 +18,7 @@
 			{#if !user.profileLoading}
 				{#if user.profile}
 					{user.profile.handle}
-					<button title="logout" onclick={backend.logout}>
+					<button title="logout" onclick={() => backend.logout()}>
 						<div class="avatar w-12 overflow-clip rounded-full">
 							{#key user.profile?.did}
 								<img alt="avatar" src={user.profile?.avatar} />
