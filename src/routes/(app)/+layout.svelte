@@ -1,7 +1,7 @@
 <script lang="ts">
 	import './app.css';
-	import { user } from '$lib/user';
 	import { backend } from '$lib/backend';
+	import { status } from '$lib/backendStatus';
 
 	let loginHandle = $state('');
 	let loginLoading = $state(false);
@@ -16,20 +16,20 @@
 				<a class="btn btn-ghost text-xl" href="/">Mini Chat {[].length}</a>
 			</div>
 
-			{#if !user.profileLoading}
-				{#if user.profile}
-					{user.profile.handle}
+			{#if status.profile}
+				{#if status.profile}
+					{status.profile.handle}
 					<button title="logout" onclick={() => backend.logout()}>
 						<div class="avatar w-12 overflow-clip rounded-full">
-							{#key user.profile?.did}
-								<img alt="avatar" src={user.profile?.avatar} />
+							{#key status.profile?.did}
+								<img alt="avatar" src={status.profile?.avatar} />
 							{/key}
 						</div>
 					</button>
 				{/if}
-			{:else}
+			{:else if status.did && !status.profile}
 				Loading...
-			{/if}
+			{:else}{/if}
 		</div>
 	</div>
 
@@ -48,9 +48,9 @@
 			{/each} -->
 		</div>
 
-		{#if user.didLoading}
+		{#if !status.authLoaded}
 			Loading...
-		{:else if user.did}
+		{:else if status.did}
 			<button>Send message</button>
 			<!-- {JSON.stringify(user.profile)} -->
 			<!-- {@render children()} -->

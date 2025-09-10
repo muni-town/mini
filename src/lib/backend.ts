@@ -1,6 +1,6 @@
 import type { ProfileViewDetailed } from '@atproto/api/dist/client/types/app/bsky/actor/defs';
 import BackendWorker from './backendWorker.ts?sharedworker';
-import { messagePortInterface } from './messagePortInterface';
+import { messagePortInterface } from './workerMessaging';
 
 // eslint-disable-next-line @typescript-eslint/no-empty-object-type
 export type FrontendInterface = {};

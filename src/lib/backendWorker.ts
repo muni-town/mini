@@ -5,7 +5,7 @@ import { dev } from '$app/environment';
 
 import { LeafClient } from '@muni-town/leaf-client';
 import type { BackendInterface, FrontendInterface } from './backend';
-import { messagePortInterface } from './messagePortInterface';
+import { messagePortInterface, reactiveWorkerState } from './workerMessaging';
 
 import {
 	atprotoLoopbackClientMetadata,
@@ -18,9 +18,11 @@ import { Agent } from '@atproto/api';
 import type { ProfileViewDetailed } from '@atproto/api/dist/client/types/app/bsky/actor/defs';
 import Dexie, { type EntityTable } from 'dexie';
 
-const atprotoOauthScope = 'atproto transition:generic transition:chat.bsky';
+import type { BackendStatus } from './backendStatus';
 
-const profileBroadcast = new BroadcastChannel('atproto-session');
+const status = reactiveWorkerState<BackendStatus>('backend-status', true);
+
+const atprotoOauthScope = 'atproto transition:generic transition:chat.bsky';
 
 interface KeyValue {
 	key: string;
@@ -67,20 +69,18 @@ globalThis.localStorage = {
  * Helper class wrapping up our worker state behind getters and setters so we run code whenever
  * they are changed.
  * */
-class BackendState {
+class Backend {
 	/**
 	 * This is just the last frontend connection that has opened. We use it if we need to talk to any
 	 * one frontend to do something that we can't do from the worker.
 	 * */
-	#masterFrontend: FrontendInterface | undefined;
-
-	/** Our leaf API client */
-	#leafClient: LeafClient | undefined;
+	masterFrontend: FrontendInterface | undefined;
 
 	#oauth: BrowserOAuthClient | undefined;
 	#agent: Agent | undefined;
 	#session: OAuthSession | undefined;
 	#profile: ProfileViewDetailed | undefined;
+	#leafClient: LeafClient | undefined;
 
 	#oauthReady: Promise<void>;
 	#resolveOauthReady: () => void = () => {};
@@ -90,15 +90,16 @@ class BackendState {
 
 	constructor() {
 		this.#oauthReady = new Promise((r) => (this.#resolveOauthReady = r));
-		initiailzeOauthClient().then((client) => {
-			this.oauth = client;
+		createOauthClient().then((client) => {
+			this.setOauthClient(client);
 		});
 	}
 
 	get oauth() {
 		return this.#oauth;
 	}
-	set oauth(oauth) {
+
+	setOauthClient(oauth: BrowserOAuthClient) {
 		this.#oauth = oauth;
 
 		if (oauth) {
@@ -108,37 +109,40 @@ class BackendState {
 				if (entry && this.oauth && !this.session) {
 					try {
 						const restoredSession = await this.oauth.restore(entry.value);
-						this.session = restoredSession;
+						this.setSession(restoredSession);
 					} catch (e) {
 						console.error(e);
 						this.logout();
 					}
 				}
 				this.#resolveOauthReady();
+				status.authLoaded = true;
 			})();
 		} else {
-			this.session = undefined;
+			this.setSession(undefined);
 		}
 	}
 
 	get session() {
 		return this.#session;
 	}
-	set session(session) {
+
+	setSession(session: OAuthSession | undefined) {
 		this.#session = session;
-		profileBroadcast.postMessage({ did: session?.did });
+		status.did = session?.did;
 		if (session) {
 			db.kv.add({ key: 'did', value: session.did });
-			this.agent = new Agent(session);
+			this.setAgent(new Agent(session));
 		} else {
-			this.agent = undefined;
+			this.setAgent(undefined);
 		}
 	}
 
 	get agent() {
 		return this.#agent;
 	}
-	set agent(agent) {
+
+	setAgent(agent: Agent | undefined) {
 		this.#agent = agent;
 		if (agent) {
 			agent.getProfile({ actor: agent.assertDid }).then((resp) => {
@@ -146,19 +150,20 @@ class BackendState {
 			});
 
 			if (!this.#leafClient) {
-				this.leafClient = new LeafClient('http://localhost:5530', async () => {
-					const resp = await this.agent?.com.atproto.server.getServiceAuth({
-						aud: 'did:web:localhost:5530'
-					});
-					if (!resp) throw 'Error authenticating for leaf server';
-					return resp.data.token;
-				});
+				this.setLeafClient(
+					new LeafClient('http://localhost:5530', async () => {
+						const resp = await this.agent?.com.atproto.server.getServiceAuth({
+							aud: 'did:web:localhost:5530'
+						});
+						if (!resp) throw 'Error authenticating for leaf server';
+						return resp.data.token;
+					})
+				);
 			}
 		} else {
 			this.profile = undefined;
-			// TODO: use new leaf disconnect function
-			this.#leafClient?.socket.disconnect();
-			this.leafClient = undefined;
+			this.#leafClient?.disconnect();
+			this.setLeafClient(undefined);
 		}
 	}
 
@@ -167,41 +172,34 @@ class BackendState {
 	}
 	set profile(profile) {
 		this.#profile = profile;
-		profileBroadcast.postMessage({ profile });
-	}
-
-	get masterFrontend() {
-		return this.#masterFrontend;
-	}
-	set masterFrontend(value) {
-		this.#masterFrontend = value;
+		status.profile = profile;
 	}
 
 	get leafClient() {
 		return this.#leafClient;
 	}
-	set leafClient(client) {
-		this.#leafClient = client;
+	setLeafClient(client: LeafClient | undefined) {
 		if (client) {
 			initializeLeafClient(client);
 		} else {
 			this.#leafClient?.disconnect();
 		}
+		this.#leafClient = client;
 	}
 
 	async oauthCallback(params: URLSearchParams) {
 		await this.#oauthReady;
 		const response = await state.oauth?.callback(params);
-		this.session = response?.session;
+		this.setSession(response?.session);
 	}
 
 	logout() {
 		db.kv.delete('did');
-		this.session = undefined;
+		this.setSession(undefined);
 	}
 }
 
-const state = new BackendState();
+const state = new Backend();
 (globalThis as any).state = state;
 
 (globalThis as any).onconnect = async ({ ports: [port] }: { ports: [MessagePort] }) => {
@@ -239,7 +237,7 @@ const state = new BackendState();
 	});
 };
 
-async function initiailzeOauthClient(): Promise<BrowserOAuthClient> {
+async function createOauthClient(): Promise<BrowserOAuthClient> {
 	// Build the client metadata
 	let clientMetadata: OAuthClientMetadataInput;
 	if (dev) {
@@ -277,12 +275,11 @@ async function initiailzeOauthClient(): Promise<BrowserOAuthClient> {
 		clientMetadata
 	});
 }
+
 function initializeLeafClient(client: LeafClient) {
 	client.on('connect', () => console.log('Leaf: connected'));
 	client.on('disconnect', () => console.log('Leaf: disconnected'));
 	client.on('authenticated', (did) => {
 		console.log('Leaf: authenticated as', did);
-
-		
 	});
 }

@@ -14,6 +14,9 @@ importers:
       '@atproto/api':
         specifier: ^0.16.7
         version: 0.16.7
+      '@atproto/lexicon':
+        specifier: ^0.5.1
+        version: 0.5.1
       '@atproto/oauth-client-browser':
         specifier: ^0.3.31
         version: 0.3.31
@@ -129,6 +132,9 @@ packages:
   '@atproto/common-web@0.4.2':
     resolution: {integrity: sha512-vrXwGNoFGogodjQvJDxAeP3QbGtawgZute2ed1XdRO0wMixLk3qewtikZm06H259QDJVu6voKC5mubml+WgQUw==}
 
+  '@atproto/common-web@0.4.3':
+    resolution: {integrity: sha512-nRDINmSe4VycJzPo6fP/hEltBcULFxt9Kw7fQk6405FyAWZiTluYHlXOnU7GkQfeUK44OENG1qFTBcmCJ7e8pg==}
+
   '@atproto/did@0.2.0':
     resolution: {integrity: sha512-BskT39KYbwY1DUsWekkHh47xS+wvJpFq5F9acsicNfYniinyAMnNTzGKQEhnjQuG7K0qQItg/SnmC+y0tJXV7Q==}
 
@@ -141,8 +147,8 @@ packages:
   '@atproto/jwk@0.5.0':
     resolution: {integrity: sha512-Qi2NtEqhkG+uz3CKia4+H05WMV/z//dz3ESo5+cyBKrOnxVTJ5ZubMyltWjoYvy6v/jLhorXdDWcjn07yky7MQ==}
 
-  '@atproto/lexicon@0.5.0':
-    resolution: {integrity: sha512-3aAzEAy9EAPs3CxznzMhEcqDd7m3vz1eze/ya9/ThbB7yleqJIhz5GY2q76tCCwHPhn5qDDMhlA9kKV6fG23gA==}
+  '@atproto/lexicon@0.5.1':
+    resolution: {integrity: sha512-y8AEtYmfgVl4fqFxqXAeGvhesiGkxiy3CWoJIfsFDDdTlZUC8DFnZrYhcqkIop3OlCkkljvpSJi1hbeC1tbi8A==}
 
   '@atproto/oauth-client-browser@0.3.31':
     resolution: {integrity: sha512-7Za1uB7vxZTn/7gLyXyjn+e6jCt64QNBDI9+oLQqtEFGHLCDiDBGT8t5Dm6OJrfNqYLR2Cwd8v/3Swfo1i4H/w==}
@@ -1898,7 +1904,7 @@ snapshots:
   '@atproto/api@0.16.7':
     dependencies:
       '@atproto/common-web': 0.4.2
-      '@atproto/lexicon': 0.5.0
+      '@atproto/lexicon': 0.5.1
       '@atproto/syntax': 0.4.1
       '@atproto/xrpc': 0.7.4
       await-lock: 2.2.2
@@ -1907,6 +1913,13 @@ snapshots:
       zod: 3.25.76
 
   '@atproto/common-web@0.4.2':
+    dependencies:
+      graphemer: 1.4.0
+      multiformats: 9.9.0
+      uint8arrays: 3.0.0
+      zod: 3.25.76
+
+  '@atproto/common-web@0.4.3':
     dependencies:
       graphemer: 1.4.0
       multiformats: 9.9.0
@@ -1933,9 +1946,9 @@ snapshots:
       multiformats: 9.9.0
       zod: 3.25.76
 
-  '@atproto/lexicon@0.5.0':
+  '@atproto/lexicon@0.5.1':
     dependencies:
-      '@atproto/common-web': 0.4.2
+      '@atproto/common-web': 0.4.3
       '@atproto/syntax': 0.4.1
       iso-datestring-validator: 2.2.2
       multiformats: 9.9.0
@@ -1976,7 +1989,7 @@ snapshots:
 
   '@atproto/xrpc@0.7.4':
     dependencies:
-      '@atproto/lexicon': 0.5.0
+      '@atproto/lexicon': 0.5.1
       zod: 3.25.76
 
   '@dicebear/adventurer-neutral@9.2.4(@dicebear/core@9.2.4)':
