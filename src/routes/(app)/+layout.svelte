@@ -14,9 +14,11 @@
 		<div class="navbar bg-base-100 gap-2 shadow-sm">
 			<div class="flex-1">
 				<a class="btn btn-ghost text-xl" href="/">Mini Chat</a>
-				<span class={status.leafConnected ? 'text-green-700' : 'text-red-700'}
-					>{status.leafConnected ? 'Online' : 'Offline'}</span
-				>
+				{#if status.did}
+					<span class={status.leafConnected ? 'text-green-700' : 'text-red-700'}
+						>{status.leafConnected ? 'Online' : 'Offline'}</span
+					>
+				{/if}
 			</div>
 
 			{#if status.profile}
