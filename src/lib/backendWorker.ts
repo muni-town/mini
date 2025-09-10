@@ -277,8 +277,14 @@ async function createOauthClient(): Promise<BrowserOAuthClient> {
 }
 
 function initializeLeafClient(client: LeafClient) {
-	client.on('connect', () => console.log('Leaf: connected'));
-	client.on('disconnect', () => console.log('Leaf: disconnected'));
+	client.on('connect', () => {
+		console.log('Leaf: connected');
+		status.leafConnected = true;
+	});
+	client.on('disconnect', () => {
+		console.log('Leaf: disconnected');
+		status.leafConnected = false;
+	});
 	client.on('authenticated', (did) => {
 		console.log('Leaf: authenticated as', did);
 	});

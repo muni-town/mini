@@ -5,6 +5,7 @@ export interface BackendStatus {
 	authLoaded: boolean | undefined;
 	did: string | undefined;
 	profile: ProfileViewDetailed | undefined;
+	leafConnected: boolean | undefined;
 }
 
 export const status = reactiveWorkerState<BackendStatus>('backend-status', false);
