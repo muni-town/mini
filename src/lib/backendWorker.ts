@@ -183,8 +183,9 @@ class BackendState {
 	set leafClient(client) {
 		this.#leafClient = client;
 		if (client) {
-			client.on('connect', () => console.log('connected to leaf'));
-			client.on('authenticated', (did) => console.log('Authenticated as', did));
+			initializeLeafClient(client);
+		} else {
+			this.#leafClient?.disconnect();
 		}
 	}
 
@@ -197,7 +198,6 @@ class BackendState {
 	logout() {
 		db.kv.delete('did');
 		this.session = undefined;
-		this.agent = undefined;
 	}
 }
 
@@ -223,19 +223,11 @@ const state = new BackendState();
 			return resp.data;
 		},
 		async login(handle) {
-			// TODO: handle redirect to previous page
 			if (!state.oauth) throw 'OAuth not initialized';
 			const url = await state.oauth.authorize(handle, {
 				scope: atprotoOauthScope
 			});
 			return url.href;
-
-			// TODO: Protect against browser's back-forward cache ( this was from old version of
-			// code we probably need to do something similar with the new setup. )
-			//
-			// await new Promise<never>((_resolve, reject) => { setTimeout(reject, 10000, new
-			// Error('User navigated back from the authorization page'));
-			// });
 		},
 		async oauthCallback(paramsStr) {
 			const params = new URLSearchParams(paramsStr);
@@ -283,5 +275,14 @@ async function initiailzeOauthClient(): Promise<BrowserOAuthClient> {
 		responseMode: 'query',
 		handleResolver: 'https://resolver.roomy.chat',
 		clientMetadata
+	});
+}
+function initializeLeafClient(client: LeafClient) {
+	client.on('connect', () => console.log('Leaf: connected'));
+	client.on('disconnect', () => console.log('Leaf: disconnected'));
+	client.on('authenticated', (did) => {
+		console.log('Leaf: authenticated as', did);
+
+		
 	});
 }

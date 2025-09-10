@@ -4,6 +4,7 @@
 	import { backend } from '$lib/backend';
 
 	let loginHandle = $state('');
+	let loginLoading = $state(false);
 
 	let { children } = $props();
 </script>
@@ -59,6 +60,7 @@
 				<form
 					class="flex flex-col gap-3"
 					onsubmit={async () => {
+						loginLoading = true;
 						const redirect = await backend.login(loginHandle);
 						window.location.href = redirect;
 					}}
@@ -67,7 +69,11 @@
 						Handle
 						<input class="input" bind:value={loginHandle} />
 					</label>
-					<button class="btn">Login</button>
+					{#if !loginLoading}
+						<button class="btn">Login</button>
+					{:else}
+						Logging in....
+					{/if}
 				</form>
 			</div>
 		{/if}
