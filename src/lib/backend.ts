@@ -3,6 +3,7 @@ import { messagePortInterface } from './workerMessaging';
 
 import BackendWorker from './backendWorker.ts?sharedworker';
 import SqliteWorker from './sqliteWorker.ts?worker';
+import type { BindingSpec } from '@sqlite.org/sqlite-wasm';
 
 // eslint-disable-next-line @typescript-eslint/no-empty-object-type
 export type FrontendInterface = {};
@@ -12,7 +13,7 @@ export type BackendInterface = {
 	logout(): Promise<void>;
 	oauthCallback(searchParams: string): Promise<void>;
 	getProfile(did?: string): Promise<ProfileViewDetailed | undefined>;
-	runQuery(sql: string): Promise<unknown>;
+	runQuery(sql: string, params?: BindingSpec): Promise<unknown>;
 	sendEvent(streamId: string, payload: ArrayBuffer): Promise<void>;
 	setActiveSqliteWorker(port: MessagePort): Promise<void>;
 	/** Adds a new message port connection to the backend that can call the backend interface. */
@@ -20,7 +21,7 @@ export type BackendInterface = {
 };
 
 export type SqliteWorkerInterface = {
-	runQuery(sql: string): Promise<unknown>;
+	runQuery(sql: string, params?: BindingSpec): Promise<unknown>;
 };
 
 // Initialize shared worker
@@ -29,6 +30,9 @@ export const backend = messagePortInterface<FrontendInterface, BackendInterface>
 	backendWorker.port,
 	{}
 );
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+(globalThis as any).backend = backend;
 
 // Start a sqlite worker for this tab.
 const sqliteWorkerChannel = new MessageChannel();

@@ -27,7 +27,7 @@
 					<button title="logout" onclick={() => backend.logout()}>
 						<div class="avatar w-12 overflow-clip rounded-full">
 							{#key status.profile?.did}
-								<img alt="avatar" src={status.profile?.avatar} />
+								<img alt="avatar" src={status.profile?.avatar}/>
 							{/key}
 						</div>
 					</button>
