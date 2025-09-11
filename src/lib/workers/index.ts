@@ -1,5 +1,6 @@
 import type { ProfileViewDetailed } from '@atproto/api/dist/client/types/app/bsky/actor/defs';
 import { messagePortInterface, reactiveWorkerState } from './workerMessaging';
+import backendWorkerUrl from './backendWorker.ts?worker&url';
 
 import type { BindingSpec } from '@sqlite.org/sqlite-wasm';
 
@@ -46,7 +47,7 @@ export type SqliteWorkerInterface = {
 // Initialize shared worker
 export const hasSharedWorker = 'SharedWorker' in globalThis;
 const SharedWorkerConstructor = hasSharedWorker ? SharedWorker : Worker;
-const backendWorker = new SharedWorkerConstructor(new URL('./backendWorker', import.meta.url), {
+const backendWorker = new SharedWorkerConstructor(backendWorkerUrl, {
 	name: 'mini-backend',
 	type: 'module'
 });

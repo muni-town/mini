@@ -1,60 +1,57 @@
 <script lang="ts">
 	import { onNavigate } from '$app/navigation';
-	import { roomy, g, getUser } from '$lib/roomy.svelte';
-	import { Message } from '@roomy-chat/sdk';
 	import { onMount } from 'svelte';
 	import ShapesAvatar from '$lib/components/ShapesAvatar.svelte';
-	import { derivePromise } from '$lib/utils.svelte';
 
-	let messageInput = $state('');
-	let nameInput = $state('');
-	$effect(() => {
-		nameInput = g.channel?.name || '';
-	});
-	let messages = derivePromise([], async () => (g.channel ? await g.channel.messages.items() : []));
+	// let messageInput = $state('');
+	// let nameInput = $state('');
+	// $effect(() => {
+	// 	nameInput = g.channel?.name || '';
+	// });
+	// let messages = derivePromise([], async () => (g.channel ? await g.channel.messages.items() : []));
 
-	function saveInfo() {
-		if (!g.channel) return;
-		g.channel.name = nameInput;
-		g.channel.commit();
-	}
-	async function sendMessage() {
-		if (!g.channel) return;
-		const message = await roomy.create(Message);
-		message.body.push(messageInput);
-		message.authors.push(roomy.id);
-		message.commit();
-		g.channel.messages.push(message);
-		g.channel.messages.commit();
-		messageInput = '';
+	// function saveInfo() {
+	// 	if (!g.channel) return;
+	// 	g.channel.name = nameInput;
+	// 	g.channel.commit();
+	// }
+	// async function sendMessage() {
+	// 	if (!g.channel) return;
+	// 	const message = await roomy.create(Message);
+	// 	message.body.push(messageInput);
+	// 	message.authors.push(roomy.id);
+	// 	message.commit();
+	// 	g.channel.messages.push(message);
+	// 	g.channel.messages.commit();
+	// 	messageInput = '';
 
-		// Add a delay because the message isn't posted yet.
-		setTimeout(focusAndScroll);
-	}
+	// 	// Add a delay because the message isn't posted yet.
+	// 	setTimeout(focusAndScroll);
+	// }
 
-	onMount(focusAndScroll);
-	onNavigate(focusAndScroll);
+	// onMount(focusAndScroll);
+	// onNavigate(focusAndScroll);
 
-	let unsubscribeDoc = () => {};
-	$effect(() => {
-		unsubscribeDoc();
-		if (g.channel) {
-			unsubscribeDoc = g.channel.subscribe(focusAndScroll);
-		}
-	});
+	// let unsubscribeDoc = () => {};
+	// $effect(() => {
+	// 	unsubscribeDoc();
+	// 	if (g.channel) {
+	// 		unsubscribeDoc = g.channel.subscribe(focusAndScroll);
+	// 	}
+	// });
 
-	function focusAndScroll() {
-		setTimeout(() => {
-			messagesEl.scrollTop = messagesEl.scrollHeight;
-			messageInputEl.focus();
-		}, 100);
-	}
+	// function focusAndScroll() {
+	// 	setTimeout(() => {
+	// 		messagesEl.scrollTop = messagesEl.scrollHeight;
+	// 		messageInputEl.focus();
+	// 	}, 100);
+	// }
 
 	let messagesEl: HTMLDivElement = $state() as HTMLDivElement;
 	let messageInputEl: HTMLInputElement = $state() as HTMLInputElement;
 </script>
 
-<div class="flex h-full max-h-full min-h-0 w-full flex-col">
+<!-- <div class="flex h-full max-h-full min-h-0 w-full flex-col">
 	<form>
 		<input bind:value={nameInput} type="text" class="input" placeholder="channel-name" />
 		<button class="btn" onclick={saveInfo}>Save</button>
@@ -92,4 +89,4 @@
 			/>
 		</form>
 	</div>
-</div>
+</div> -->

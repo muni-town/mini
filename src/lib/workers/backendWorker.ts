@@ -1,8 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 /// <reference lib="webworker" />
 
-import { dev } from '$app/environment';
-
 import { LeafClient } from '@muni-town/leaf-client';
 import type { BackendInterface, BackendStatus, SqliteWorkerInterface } from './index';
 import { messagePortInterface, reactiveWorkerState, type MessagePortApi } from './workerMessaging';
@@ -27,7 +25,6 @@ import { lexicons } from '../lexicons';
  * dedicated worker instead of a shared worker.
  * */
 const isSharedWorker = 'SharedWorkerGlobalScope' in globalThis;
-console.log('isshared', isSharedWorker);
 
 const status = reactiveWorkerState<BackendStatus>(new BroadcastChannel('backend-status'), true);
 
@@ -265,12 +262,10 @@ function connectMessagePort(port: MessagePortApi) {
 async function createOauthClient(): Promise<BrowserOAuthClient> {
 	// Build the client metadata
 	let clientMetadata: OAuthClientMetadataInput;
-	if (dev) {
+	if (import.meta.env.DEV) {
 		// Get the base URL and redirect URL for this deployment
 		if (globalThis.location.hostname == 'localhost') globalThis.location.hostname = '127.0.0.1';
-		const baseUrl = new URL(
-			dev ? `http://127.0.0.1:${globalThis.location.port}` : globalThis.location.href
-		);
+		const baseUrl = new URL(`http://127.0.0.1:${globalThis.location.port}`);
 		baseUrl.hash = '';
 		baseUrl.pathname = '/';
 		const redirectUri = baseUrl.href + 'oauth/callback';

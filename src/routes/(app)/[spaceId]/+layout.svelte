@@ -1,7 +1,6 @@
 <script lang="ts">
 	import { goto } from '$app/navigation';
 	import { page } from '$app/state';
-	import { derivePromise } from '$lib/utils.svelte';
 
 	// let { children } = $props();
 
