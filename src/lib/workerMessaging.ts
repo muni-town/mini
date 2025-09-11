@@ -59,7 +59,13 @@ export function messagePortInterface<Local extends HalfInterface, Remote extends
 					const respPromise = new Promise(
 						(resolve, reject) => (pendingResponseResolers[reqId] = { resolve, reject })
 					);
-					messagePort.postMessage(['call', n, reqId, ...args]);
+					const transferList = []
+					for (const arg of args) {
+						if (arg instanceof MessagePort) {
+							transferList.push(arg);
+						}
+					}
+					messagePort.postMessage(['call', n, reqId, ...args], transferList);
 					return respPromise as any;
 				};
 			}

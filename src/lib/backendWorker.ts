@@ -4,7 +4,7 @@
 import { dev } from '$app/environment';
 
 import { LeafClient } from '@muni-town/leaf-client';
-import type { BackendInterface, FrontendInterface } from './backend';
+import type { BackendInterface, FrontendInterface, SqliteWorkerInterface } from './backend';
 import { messagePortInterface, reactiveWorkerState } from './workerMessaging';
 
 import {
@@ -19,6 +19,7 @@ import type { ProfileViewDetailed } from '@atproto/api/dist/client/types/app/bsk
 import Dexie, { type EntityTable } from 'dexie';
 
 import type { BackendStatus } from './backendStatus';
+import { lexicons } from './lexicons';
 
 const status = reactiveWorkerState<BackendStatus>('backend-status', true);
 
@@ -65,17 +66,13 @@ globalThis.localStorage = {
 	}
 };
 
+let sqliteWorker: SqliteWorkerInterface | undefined;
+
 /**
  * Helper class wrapping up our worker state behind getters and setters so we run code whenever
  * they are changed.
  * */
 class Backend {
-	/**
-	 * This is just the last frontend connection that has opened. We use it if we need to talk to any
-	 * one frontend to do something that we can't do from the worker.
-	 * */
-	masterFrontend: FrontendInterface | undefined;
-
 	#oauth: BrowserOAuthClient | undefined;
 	#agent: Agent | undefined;
 	#session: OAuthSession | undefined;
@@ -145,6 +142,7 @@ class Backend {
 	setAgent(agent: Agent | undefined) {
 		this.#agent = agent;
 		if (agent) {
+			lexicons.forEach((l) => agent.lex.add(l as any));
 			agent.getProfile({ actor: agent.assertDid }).then((resp) => {
 				this.profile = resp.data;
 			});
@@ -203,11 +201,11 @@ const state = new Backend();
 (globalThis as any).state = state;
 
 (globalThis as any).onconnect = async ({ ports: [port] }: { ports: [MessagePort] }) => {
-	state.masterFrontend = messagePortInterface<BackendInterface, FrontendInterface>(port, {
-		async getDid() {
-			await state.ready;
-			return state.session?.did;
-		},
+	connectMessagePort(port);
+};
+
+function connectMessagePort(port: MessagePort) {
+	messagePortInterface<BackendInterface, FrontendInterface>(port, {
 		async getProfile(did) {
 			await state.ready;
 			if (!did) {
@@ -233,9 +231,23 @@ const state = new Backend();
 		},
 		async logout() {
 			state.logout();
+		},
+		async runQuery(sql: string) {
+			if (!sqliteWorker) throw new Error('Sqlite worker not initialized');
+			return await sqliteWorker.runQuery(sql);
+		},
+		async setActiveSqliteWorker(messagePort) {
+			// eslint-disable-next-line @typescript-eslint/no-empty-object-type
+			sqliteWorker = messagePortInterface<{}, SqliteWorkerInterface>(messagePort, {});
+		},
+		async sendEvent() {
+			throw 'Unimplemented';
+		},
+		async addClient(port) {
+			connectMessagePort(port);
 		}
 	});
-};
+}
 
 async function createOauthClient(): Promise<BrowserOAuthClient> {
 	// Build the client metadata
@@ -276,7 +288,7 @@ async function createOauthClient(): Promise<BrowserOAuthClient> {
 	});
 }
 
-function initializeLeafClient(client: LeafClient) {
+async function initializeLeafClient(client: LeafClient) {
 	client.on('connect', () => {
 		console.log('Leaf: connected');
 		status.leafConnected = true;

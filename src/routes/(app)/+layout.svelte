@@ -56,7 +56,9 @@
 		{#if !status.authLoaded}
 			Loading...
 		{:else if status.did}
-			<button>Send message</button>
+			<button class="btn" onclick={() => backend.runQuery('select * from example')}
+				>Send message</button
+			>
 			<!-- {JSON.stringify(user.profile)} -->
 			<!-- {@render children()} -->
 		{:else}
