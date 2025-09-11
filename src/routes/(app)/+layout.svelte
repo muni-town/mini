@@ -5,6 +5,8 @@
 
 	let loginHandle = $state('');
 	let loginLoading = $state(false);
+	let query = $state('');
+	let result = $state.raw(undefined) as unknown;
 
 	let { children } = $props();
 </script>
@@ -27,7 +29,7 @@
 					<button title="logout" onclick={() => backend.logout()}>
 						<div class="avatar w-12 overflow-clip rounded-full">
 							{#key status.profile?.did}
-								<img alt="avatar" src={status.profile?.avatar}/>
+								<img alt="avatar" src={status.profile?.avatar} />
 							{/key}
 						</div>
 					</button>
@@ -56,9 +58,19 @@
 		{#if !status.authLoaded}
 			Loading...
 		{:else if status.did}
-			<button class="btn" onclick={() => backend.runQuery('select * from example')}
-				>Send message</button
-			>
+			<div class="flex flex-col gap-3">
+				<textarea class="input h-20 w-[40em] p-2" bind:value={query}></textarea>
+				<button
+					class="btn"
+					onclick={() => {
+						backend
+							.runQuery(query)
+							.then((r) => (result = r))
+							.catch((e) => (result = e.toString()));
+					}}>Run Query</button
+				>
+				<pre>{JSON.stringify(result, undefined, '  ')}</pre>
+			</div>
 			<!-- {JSON.stringify(user.profile)} -->
 			<!-- {@render children()} -->
 		{:else}
