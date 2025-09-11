@@ -1,7 +1,7 @@
 <script lang="ts">
 	import './app.css';
-	import { backend } from '$lib/backend';
-	import { status } from '$lib/backendStatus';
+	import { backend } from '$lib/workers';
+	import { backendStatus } from '$lib/workers/index';
 
 	let loginHandle = $state('');
 	let loginLoading = $state(false);
@@ -16,25 +16,25 @@
 		<div class="navbar bg-base-100 gap-2 shadow-sm">
 			<div class="flex-1">
 				<a class="btn btn-ghost text-xl" href="/">Mini Chat</a>
-				{#if status.did}
-					<span class={status.leafConnected ? 'text-green-700' : 'text-red-700'}
-						>{status.leafConnected ? 'Online' : 'Offline'}</span
+				{#if backendStatus.did}
+					<span class={backendStatus.leafConnected ? 'text-green-700' : 'text-red-700'}
+						>{backendStatus.leafConnected ? 'Online' : 'Offline'}</span
 					>
 				{/if}
 			</div>
 
-			{#if status.profile}
-				{#if status.profile}
-					{status.profile.handle}
+			{#if backendStatus.profile}
+				{#if backendStatus.profile}
+					{backendStatus.profile.handle}
 					<button title="logout" onclick={() => backend.logout()}>
 						<div class="avatar w-12 overflow-clip rounded-full">
-							{#key status.profile?.did}
-								<img alt="avatar" src={status.profile?.avatar} />
+							{#key backendStatus.profile?.did}
+								<img alt="avatar" src={backendStatus.profile?.avatar} />
 							{/key}
 						</div>
 					</button>
 				{/if}
-			{:else if status.did && !status.profile}
+			{:else if backendStatus.did && !backendStatus.profile}
 				Loading...
 			{:else}{/if}
 		</div>
@@ -55,9 +55,9 @@
 			{/each} -->
 		</div>
 
-		{#if !status.authLoaded}
+		{#if !backendStatus.authLoaded}
 			Loading...
-		{:else if status.did}
+		{:else if backendStatus.did}
 			<div class="flex flex-col gap-3">
 				<textarea class="input h-20 w-[40em] p-2" bind:value={query}></textarea>
 				<button

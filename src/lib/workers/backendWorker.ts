@@ -4,7 +4,7 @@
 import { dev } from '$app/environment';
 
 import { LeafClient } from '@muni-town/leaf-client';
-import type { BackendInterface, FrontendInterface, SqliteWorkerInterface } from './backend';
+import type { BackendInterface, BackendStatus, SqliteWorkerInterface } from './index';
 import { messagePortInterface, reactiveWorkerState } from './workerMessaging';
 
 import {
@@ -18,10 +18,9 @@ import { Agent } from '@atproto/api';
 import type { ProfileViewDetailed } from '@atproto/api/dist/client/types/app/bsky/actor/defs';
 import Dexie, { type EntityTable } from 'dexie';
 
-import type { BackendStatus } from './backendStatus';
-import { lexicons } from './lexicons';
+import { lexicons } from '../lexicons';
 
-const status = reactiveWorkerState<BackendStatus>('backend-status', true);
+const status = reactiveWorkerState<BackendStatus>(new BroadcastChannel('backend-status'), true);
 
 const atprotoOauthScope = 'atproto transition:generic transition:chat.bsky';
 
@@ -205,7 +204,8 @@ const state = new Backend();
 };
 
 function connectMessagePort(port: MessagePort) {
-	messagePortInterface<BackendInterface, FrontendInterface>(port, {
+	// eslint-disable-next-line @typescript-eslint/no-empty-object-type
+	messagePortInterface<BackendInterface, {}>(port, {
 		async getProfile(did) {
 			await state.ready;
 			if (!did) {

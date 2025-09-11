@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-empty-object-type */
-import type { BackendInterface, SqliteWorkerInterface } from './backend';
-import { initializeDatabase, executeQuery } from './setup-sqlite';
+import type { BackendInterface, SqliteWorkerInterface } from './index';
+import { initializeDatabase, executeQuery } from '../setup-sqlite';
 import { messagePortInterface } from './workerMessaging';
 
 globalThis.onmessage = (ev) => {

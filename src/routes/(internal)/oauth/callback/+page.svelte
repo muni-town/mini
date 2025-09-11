@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { backend } from '$lib/backend';
+	import { backend } from '$lib/workers';
 	import { onMount } from 'svelte';
 
 	let error = $state('');

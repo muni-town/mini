@@ -1,6 +1,6 @@
 import type { ProfileViewDetailed } from '@atproto/api/dist/client/types/app/bsky/actor/defs';
 import { createSubscriber } from 'svelte/reactivity';
-import { backend, type BackendInterface } from './backend';
+import { backend, type BackendInterface } from './workers';
 
 export class ReactiveUser {
 	#channel = new BroadcastChannel('atproto-session');

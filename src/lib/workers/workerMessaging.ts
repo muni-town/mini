@@ -59,7 +59,7 @@ export function messagePortInterface<Local extends HalfInterface, Remote extends
 					const respPromise = new Promise(
 						(resolve, reject) => (pendingResponseResolers[reqId] = { resolve, reject })
 					);
-					const transferList = []
+					const transferList = [];
 					for (const arg of args) {
 						if (arg instanceof MessagePort) {
 							transferList.push(arg);
@@ -80,11 +80,11 @@ type ReactiveWorkerStateMessage = ['need', string] | ['update', string, any];
  * update svelte even when updated from a worker.
  * */
 export function reactiveWorkerState<T extends { [key: string]: any | undefined }>(
-	name: string,
+	channel: { onmessage: ((ev: MessageEvent) => void) | null; postMessage: (message: any) => void },
 	provider: boolean
 ): T {
 	const state = {
-		channel: new BroadcastChannel(name),
+		channel,
 		props: {} as {
 			[prop: string]: any | undefined;
 		},
