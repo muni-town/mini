@@ -1,16 +1,19 @@
 /* eslint-disable @typescript-eslint/no-empty-object-type */
-import type { BackendInterface, SqliteWorkerInterface } from './index';
+import type { BackendInterface, SqliteStatus, SqliteWorkerInterface } from './index';
 import { initializeDatabase, executeQuery } from '../setup-sqlite';
-import { messagePortInterface } from './workerMessaging';
+import { messagePortInterface, reactiveWorkerState } from './workerMessaging';
 
 globalThis.onmessage = (ev) => {
 	console.log('Started sqlite worker');
-	const backendPort: MessagePort = ev.data;
+	const ports: { backendPort: MessagePort; statusPort: MessagePort } = ev.data;
 
-	const backend = messagePortInterface<{}, BackendInterface>(backendPort, {});
+	const status = reactiveWorkerState<SqliteStatus>(ports.statusPort, true);
+
+	const backend = messagePortInterface<{}, BackendInterface>(ports.backendPort, {});
 
 	navigator.locks.request('sqlite-worker-lock', { mode: 'exclusive' }, async () => {
 		console.log("Sqlite worker lock obtained: I'm now the active sqlite worker.");
+		status.isActiveWorker = true;
 		await initializeDatabase('/mini.db');
 
 		const sqliteChannel = new MessageChannel();
@@ -22,4 +25,5 @@ globalThis.onmessage = (ev) => {
 		backend.setActiveSqliteWorker(sqliteChannel.port2);
 		await new Promise(() => {});
 	});
+	status.isActiveWorker = false;
 };

@@ -3,6 +3,11 @@ import { messagePortInterface, reactiveWorkerState } from './workerMessaging';
 
 import type { BindingSpec } from '@sqlite.org/sqlite-wasm';
 
+// Force page reload when hot reloading this file to avoid confusion if the workers get mixed up.
+if (import.meta.hot) {
+	import.meta.hot.accept(() => window.location.reload());
+}
+
 export interface BackendStatus {
 	authLoaded: boolean | undefined;
 	did: string | undefined;
@@ -34,24 +39,23 @@ export type BackendInterface = {
 	addClient(port: MessagePort): Promise<void>;
 };
 
-// Test how the system works when disabling shared workers
-
-// // eslint-disable-next-line @typescript-eslint/no-explicit-any
-// (globalThis as any).SharedWorker = undefined;
-
 export type SqliteWorkerInterface = {
 	runQuery(sql: string, params?: BindingSpec): Promise<unknown>;
 };
 
 // Initialize shared worker
-const SharedWorkerConstructor = SharedWorker;
+export const hasSharedWorker = 'SharedWorker' in globalThis;
+const SharedWorkerConstructor = hasSharedWorker ? SharedWorker : Worker;
 const backendWorker = new SharedWorkerConstructor(new URL('./backendWorker', import.meta.url), {
 	name: 'mini-backend',
 	type: 'module'
 });
 
 // eslint-disable-next-line @typescript-eslint/no-empty-object-type
-export const backend = messagePortInterface<{}, BackendInterface>(backendWorker.port, {});
+export const backend = messagePortInterface<{}, BackendInterface>(
+	'port' in backendWorker ? backendWorker.port : backendWorker,
+	{}
+);
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 (globalThis as any).backend = backend;
@@ -63,4 +67,7 @@ const sqliteWorker = new Worker(new URL('./sqliteWorker.ts', import.meta.url), {
 	name: 'mini-database-worker',
 	type: 'module'
 });
-sqliteWorker.postMessage(sqliteWorkerChannel.port2, [sqliteWorkerChannel.port2]);
+sqliteWorker.postMessage(
+	{ backendPort: sqliteWorkerChannel.port2, statusPort: workerStatusChannel.port2 },
+	[sqliteWorkerChannel.port2, workerStatusChannel.port2]
+);

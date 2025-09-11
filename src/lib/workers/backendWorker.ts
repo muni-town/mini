@@ -5,7 +5,7 @@ import { dev } from '$app/environment';
 
 import { LeafClient } from '@muni-town/leaf-client';
 import type { BackendInterface, BackendStatus, SqliteWorkerInterface } from './index';
-import { messagePortInterface, reactiveWorkerState } from './workerMessaging';
+import { messagePortInterface, reactiveWorkerState, type MessagePortApi } from './workerMessaging';
 
 import {
 	atprotoLoopbackClientMetadata,
@@ -19,6 +19,15 @@ import type { ProfileViewDetailed } from '@atproto/api/dist/client/types/app/bsk
 import Dexie, { type EntityTable } from 'dexie';
 
 import { lexicons } from '../lexicons';
+
+/**
+ * Check whether or not we are executing in a shared worker.
+ *
+ * On platforms like Android chrome where SharedWorkers are not available this script will run as a
+ * dedicated worker instead of a shared worker.
+ * */
+const isSharedWorker = 'SharedWorkerGlobalScope' in globalThis;
+console.log('isshared', isSharedWorker);
 
 const status = reactiveWorkerState<BackendStatus>(new BroadcastChannel('backend-status'), true);
 
@@ -199,11 +208,15 @@ class Backend {
 const state = new Backend();
 (globalThis as any).state = state;
 
-(globalThis as any).onconnect = async ({ ports: [port] }: { ports: [MessagePort] }) => {
-	connectMessagePort(port);
-};
+if (isSharedWorker) {
+	(globalThis as any).onconnect = async ({ ports: [port] }: { ports: [MessagePort] }) => {
+		connectMessagePort(port);
+	};
+} else {
+	connectMessagePort(globalThis);
+}
 
-function connectMessagePort(port: MessagePort) {
+function connectMessagePort(port: MessagePortApi) {
 	// eslint-disable-next-line @typescript-eslint/no-empty-object-type
 	messagePortInterface<BackendInterface, {}>(port, {
 		async getProfile(did) {

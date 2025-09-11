@@ -2,6 +2,14 @@
 
 import { createSubscriber } from 'svelte/reactivity';
 
+export type MessagePortApi = {
+	onmessage: ((ev: MessageEvent) => void) | null;
+	postMessage: {
+		(message: any): void;
+		(message: any, transfer: Transferable[]): void;
+	};
+};
+
 type HalfInterface = {
 	[key: string]: (...args: any[]) => Promise<unknown>;
 };
@@ -15,7 +23,7 @@ type IncomingMessage<In extends HalfInterface, Out extends HalfInterface> =
  * Wrap a message port to allow calling remote functions and providing functions to a remote worker.
  * */
 export function messagePortInterface<Local extends HalfInterface, Remote extends HalfInterface>(
-	messagePort: MessagePort,
+	messagePort: MessagePortApi,
 	handlers: Local
 ): Remote {
 	const pendingResponseResolers: {
@@ -80,7 +88,7 @@ type ReactiveWorkerStateMessage = ['need', string] | ['update', string, any];
  * update svelte even when updated from a worker.
  * */
 export function reactiveWorkerState<T extends { [key: string]: any | undefined }>(
-	channel: { onmessage: ((ev: MessageEvent) => void) | null; postMessage: (message: any) => void },
+	channel: MessagePortApi,
 	provider: boolean
 ): T {
 	const state = {
