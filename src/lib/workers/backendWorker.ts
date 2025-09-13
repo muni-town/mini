@@ -225,7 +225,7 @@ function connectMessagePort(port: MessagePortApi) {
 	messagePortInterface<BackendInterface, {}>(port, {
 		async getProfile(did) {
 			await state.ready;
-			if (!did) {
+			if (!did || did == state.agent?.did) {
 				return state.profile;
 			}
 			const resp = await state.agent?.getProfile({ actor: did || state.agent.assertDid });
