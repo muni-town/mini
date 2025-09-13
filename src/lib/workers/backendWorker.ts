@@ -332,9 +332,48 @@ async function createOauthClient(): Promise<BrowserOAuthClient> {
 	});
 }
 
+const personalModuleId = '74191e22741f299ae69b9f234b31832397ee29c18974eb82a934df827aa0516a';
 async function initializeLeafClient(client: LeafClient) {
-	client.on('connect', () => {
+	client.on('connect', async () => {
 		console.log('Leaf: connected');
+
+		if (!state.agent) throw new Error('ATProto agent not initialized');
+
+		// Get the user's personal space ID
+		let streamId: string;
+		try {
+			const resp1 = await state.agent.com.atproto.repo.getRecord({
+				collection: 'space.roomy.stream',
+				repo: state.agent.assertDid,
+				rkey: 'self'
+			});
+			const existingRecord = resp1.data.value as { id: string };
+			streamId = existingRecord.id;
+			console.log('Found existing stream ID from PDS:', streamId);
+		} catch (_) {
+			console.log('Could not find existing stream ID on PDS');
+			streamId = await client.createStreamFromModuleUrl(
+				personalModuleId,
+				'/leaf_module_personal.wasm',
+				new ArrayBuffer()
+			);
+			console.log('Created new stream:', streamId);
+			const resp2 = await state.agent.com.atproto.repo.putRecord({
+				collection: 'space.roomy.stream',
+				record: { id: streamId, version: 1 },
+				repo: state.agent.assertDid,
+				rkey: 'self'
+			});
+			if (!resp2.success) {
+				throw new Error('Could not create PDS record for personal stream', {
+					cause: JSON.stringify(resp2.data)
+				});
+			}
+		}
+
+		client.subscribe(streamId);
+		console.log('Subscribed to stream:', streamId);
+
 		status.leafConnected = true;
 	});
 	client.on('disconnect', () => {
