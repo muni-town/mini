@@ -2,6 +2,7 @@
 	import './app.css';
 	import { backend, hasSharedWorker, sqliteStatus } from '$lib/workers';
 	import { backendStatus } from '$lib/workers/index';
+	import { LiveQuery } from '$lib/liveQuery.svelte';
 
 	let loginHandle = $state('');
 	let loginLoading = $state(false);
@@ -9,6 +10,12 @@
 	let result = $state.raw(undefined) as unknown;
 
 	let lockedTab = $derived(sqliteStatus.isActiveWorker == false && !hasSharedWorker);
+
+	let surname = $state('smith');
+	let users = new LiveQuery<{ name: string; surname: string }>(
+		'select name, surname from users where surname like ?',
+		() => [surname || '%']
+	);
 
 	let { children } = $props();
 </script>
@@ -40,7 +47,7 @@
 						</button>
 					{/if}
 				{:else if backendStatus.did && !backendStatus.profile}
-					Loading...
+					Loading
 				{:else}{/if}
 			</div>
 		</div>
@@ -63,8 +70,21 @@
 			{#if !backendStatus.authLoaded}
 				Loading...
 			{:else if backendStatus.did}
+				<ul>
+					{#each users.result?.rows || [] as user}
+						<li>{user.name} {user.surname}</li>
+					{/each}
+				</ul>
+				<!-- <pre class="h-full overflow-y-auto">{JSON.stringify(
+						users.result || 'no result',
+						undefined,
+						'  '
+					)}</pre> -->
 				<div class="flex flex-col gap-3">
 					<div>Is Active Worker: {sqliteStatus.isActiveWorker}</div>
+					<label>
+						<input class="input" bind:value={surname} />
+					</label>
 					<textarea class="input h-20 w-[40em] p-2" bind:value={query}></textarea>
 					<button
 						class="btn"
@@ -75,7 +95,7 @@
 								.catch((e) => (result = e.toString()));
 						}}>Run Query</button
 					>
-					<pre>{JSON.stringify(result, undefined, '  ')}</pre>
+					<pre class="h-full overflow-y-auto">{JSON.stringify(result, undefined, '  ')}</pre>
 				</div>
 				<!-- {JSON.stringify(user.profile)} -->
 				<!-- {@render children()} -->

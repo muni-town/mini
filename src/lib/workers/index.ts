@@ -34,6 +34,7 @@ export type BackendInterface = {
 	oauthCallback(searchParams: string): Promise<void>;
 	getProfile(did?: string): Promise<ProfileViewDetailed | undefined>;
 	runQuery(sql: string, params?: BindingSpec): Promise<unknown>;
+	createLiveQuery(id: string, port: MessagePort, sql: string, params?: BindingSpec): Promise<void>;
 	sendEvent(streamId: string, payload: ArrayBuffer): Promise<void>;
 	setActiveSqliteWorker(port: MessagePort): Promise<void>;
 	/** Adds a new message port connection to the backend that can call the backend interface. */
@@ -41,6 +42,8 @@ export type BackendInterface = {
 };
 
 export type SqliteWorkerInterface = {
+	createLiveQuery(id: string, port: MessagePort, sql: string, params?: BindingSpec): Promise<void>;
+	deleteLiveQuery(id: string): Promise<void>;
 	runQuery(sql: string, params?: BindingSpec): Promise<unknown>;
 };
 

@@ -24,6 +24,16 @@ export default ts.config(
 		}
 	},
 	{
+		"@typescript-eslint/no-unused-vars": [
+			"warn", // Or "error"
+			{
+				"argsIgnorePattern": "^_",
+				"varsIgnorePattern": "^_",
+				"caughtErrorsIgnorePattern": "^_"
+			}
+		]
+	},
+	{
 		files: ['**/*.svelte', '**/*.svelte.ts', '**/*.svelte.js'],
 		ignores: ['eslint.config.js', 'svelte.config.js'],
 

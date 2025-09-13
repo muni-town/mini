@@ -17,6 +17,7 @@ import type { ProfileViewDetailed } from '@atproto/api/dist/client/types/app/bsk
 import Dexie, { type EntityTable } from 'dexie';
 
 import { lexicons } from '../lexicons';
+import type { BindingSpec } from '@sqlite.org/sqlite-wasm';
 
 /**
  * Check whether or not we are executing in a shared worker.
@@ -72,6 +73,8 @@ globalThis.localStorage = {
 };
 
 let sqliteWorker: SqliteWorkerInterface | undefined;
+let setSqliteWorkerReady = () => {};
+const sqliteWorkerReady = new Promise((r) => (setSqliteWorkerReady = r as () => void));
 
 /**
  * Helper class wrapping up our worker state behind getters and setters so we run code whenever
@@ -213,6 +216,10 @@ if (isSharedWorker) {
 	connectMessagePort(globalThis);
 }
 
+const liveQueries: Map<string, { port: MessagePort; sql: string; params?: BindingSpec }> =
+	new Map();
+(globalThis as any).liveQueries = liveQueries;
+
 function connectMessagePort(port: MessagePortApi) {
 	// eslint-disable-next-line @typescript-eslint/no-empty-object-type
 	messagePortInterface<BackendInterface, {}>(port, {
@@ -243,12 +250,41 @@ function connectMessagePort(port: MessagePortApi) {
 			state.logout();
 		},
 		async runQuery(sql: string) {
+			await sqliteWorkerReady;
 			if (!sqliteWorker) throw new Error('Sqlite worker not initialized');
 			return await sqliteWorker.runQuery(sql);
+		},
+		async createLiveQuery(id, port, sql, params) {
+			liveQueries.set(id, { port, sql, params });
+			const channel = new MessageChannel();
+			channel.port1.onmessage = (ev) => {
+				port.postMessage(ev.data);
+			};
+			navigator.locks.request(id, () => {
+				// When we obtain a lock to the query ID, that means that the query is no longer in
+				// use and we can delete it.
+				liveQueries.delete(id);
+				sqliteWorker?.deleteLiveQuery(id);
+			});
+			await sqliteWorkerReady;
+			if (!sqliteWorker) throw new Error('Sqlite worker not initialized');
+			return await sqliteWorker.createLiveQuery(id, channel.port2, sql, params);
 		},
 		async setActiveSqliteWorker(messagePort) {
 			// eslint-disable-next-line @typescript-eslint/no-empty-object-type
 			sqliteWorker = messagePortInterface<{}, SqliteWorkerInterface>(messagePort, {});
+			setSqliteWorkerReady();
+
+			// When a new SQLite worker is created we need to make sure that we re-create all of the
+			// live queries that were active on the old worker.
+			for (const [id, { port, sql, params }] of liveQueries.entries()) {
+				console.log('recreating live query', sql);
+				const channel = new MessageChannel();
+				channel.port1.onmessage = (ev) => {
+					port.postMessage(ev.data);
+				};
+				sqliteWorker.createLiveQuery(id, channel.port2, sql, params);
+			}
 		},
 		async sendEvent() {
 			throw 'Unimplemented';

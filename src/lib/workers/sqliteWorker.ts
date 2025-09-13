@@ -1,6 +1,11 @@
 /* eslint-disable @typescript-eslint/no-empty-object-type */
 import type { BackendInterface, SqliteStatus, SqliteWorkerInterface } from './index';
-import { initializeDatabase, executeQuery } from '../setup-sqlite';
+import {
+	initializeDatabase,
+	executeQuery,
+	deleteLiveQuery,
+	createLiveQuery
+} from '../setup-sqlite';
 import { messagePortInterface, reactiveWorkerState } from './workerMessaging';
 
 globalThis.onmessage = (ev) => {
@@ -20,6 +25,12 @@ globalThis.onmessage = (ev) => {
 		messagePortInterface<SqliteWorkerInterface, {}>(sqliteChannel.port1, {
 			async runQuery(sql, params) {
 				return await executeQuery(sql, params);
+			},
+			async createLiveQuery(id, port, sql, params) {
+				createLiveQuery(id, port, sql, params);
+			},
+			async deleteLiveQuery(id) {
+				deleteLiveQuery(id);
 			}
 		});
 		backend.setActiveSqliteWorker(sqliteChannel.port2);
