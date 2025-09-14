@@ -3,6 +3,7 @@ import { messagePortInterface, reactiveWorkerState } from './workerMessaging';
 import backendWorkerUrl from './backendWorker.ts?worker&url';
 
 import type { BindingSpec } from '@sqlite.org/sqlite-wasm';
+import type { EventType } from './materializer';
 
 // Force page reload when hot reloading this file to avoid confusion if the workers get mixed up.
 if (import.meta.hot) {
@@ -14,6 +15,7 @@ export interface BackendStatus {
 	did: string | undefined;
 	profile: ProfileViewDetailed | undefined;
 	leafConnected: boolean | undefined;
+	personalStreamId: string | undefined;
 }
 export interface SqliteStatus {
 	isActiveWorker: boolean | undefined;
@@ -35,7 +37,7 @@ export type BackendInterface = {
 	getProfile(did?: string): Promise<ProfileViewDetailed | undefined>;
 	runQuery(sql: string, params?: BindingSpec): Promise<unknown>;
 	createLiveQuery(id: string, port: MessagePort, sql: string, params?: BindingSpec): Promise<void>;
-	sendEvent(streamId: string, payload: ArrayBuffer): Promise<void>;
+	sendEvent(streamId: string, payload: EventType): Promise<void>;
 	setActiveSqliteWorker(port: MessagePort): Promise<void>;
 	/** Adds a new message port connection to the backend that can call the backend interface. */
 	addClient(port: MessagePort): Promise<void>;

@@ -18,6 +18,7 @@ import Dexie, { type EntityTable } from 'dexie';
 
 import { lexicons } from '../lexicons';
 import type { BindingSpec } from '@sqlite.org/sqlite-wasm';
+import { config as materializerConfig, eventCodec, type EventType } from './materializer';
 
 /**
  * Check whether or not we are executing in a shared worker.
@@ -37,9 +38,11 @@ interface KeyValue {
 }
 const db = new Dexie('mini-shared-worker-db') as Dexie & {
 	kv: EntityTable<KeyValue, 'key'>;
+	streamCursors: EntityTable<{ streamId: string; latestEvent: number }, 'streamId'>;
 };
 db.version(1).stores({
-	kv: `key,value`
+	kv: `key,value`,
+	streamCursors: `streamId`
 });
 
 // TODO: This might be a horrible local storage shim. I don't know how it handles multiple tabs
@@ -286,8 +289,9 @@ function connectMessagePort(port: MessagePortApi) {
 				sqliteWorker.createLiveQuery(id, channel.port2, sql, params);
 			}
 		},
-		async sendEvent() {
-			throw 'Unimplemented';
+		async sendEvent(streamId: string, event: EventType) {
+			if (!state.leafClient) throw 'Leaf client not ready';
+			await state.leafClient.sendEvent(streamId, eventCodec.enc(event).buffer as ArrayBuffer);
 		},
 		async addClient(port) {
 			connectMessagePort(port);
@@ -371,8 +375,11 @@ async function initializeLeafClient(client: LeafClient) {
 			}
 		}
 
+		status.personalStreamId = streamId;
 		client.subscribe(streamId);
 		console.log('Subscribed to stream:', streamId);
+
+		streamMaterializers.set(streamId, new StreamMaterializer(streamId, materializerConfig));
 
 		status.leafConnected = true;
 	});
@@ -383,4 +390,106 @@ async function initializeLeafClient(client: LeafClient) {
 	client.on('authenticated', (did) => {
 		console.log('Leaf: authenticated as', did);
 	});
+	client.on('event', (event) => {
+		const materializer = streamMaterializers.get(event.stream);
+		if (materializer) {
+			materializer.handleEvent(event);
+		}
+	});
+}
+
+export type SqlStatement = {
+	sql: string;
+	params?: BindingSpec;
+};
+
+export type StreamEvent = {
+	idx: number;
+	user: string;
+	payload: ArrayBuffer;
+};
+
+export type MaterializerConfig = {
+	initSql: SqlStatement[];
+	materializer: (streamId: string, event: StreamEvent) => SqlStatement[];
+};
+
+const streamMaterializers: Map<string, StreamMaterializer> = new Map();
+
+class StreamMaterializer {
+	#streamid: string;
+	#backfilling = true;
+	#queue: StreamEvent[] = [];
+	#latestEvent: number | undefined;
+	#materializer: (streamId: string, event: StreamEvent) => SqlStatement[];
+
+	get streamId() {
+		return this.#streamid;
+	}
+
+	constructor(streamId: string, config: MaterializerConfig) {
+		console.log('new materializer for ', streamId);
+		if (!state.leafClient) throw 'No leaf client';
+		this.#streamid = streamId;
+		this.#materializer = config.materializer;
+
+		state.leafClient.subscribe(this.#streamid);
+
+		// Start backfilling the stream events
+		this.#backfilling = true;
+		(async () => {
+			if (!state.leafClient) throw 'No leaf client';
+			if (!sqliteWorker) throw 'No Sqlite worker';
+			const entry = await db.streamCursors.get(this.#streamid);
+			this.#latestEvent = entry?.latestEvent || 0;
+
+			// Initialize the database if we haven't processed any events yet
+			if (this.#latestEvent == 0) {
+				for (const { sql, params } of config.initSql) {
+					await sqliteWorker.runQuery(sql, params);
+				}
+			}
+
+			// Backfill events
+			while (true) {
+				const newEvents = await state.leafClient.fetchEvents(this.#streamid, {
+					offset: this.#latestEvent + 1,
+					limit: 250
+				});
+				if (newEvents.length == 0) break;
+			}
+
+			// Finish off any events that have come in while we are backfilling
+			while (true) {
+				const event = this.#queue.shift();
+				if (!event) break;
+				await this.#materializeEvent(event);
+			}
+
+			this.#backfilling = false;
+		}).bind(this)();
+	}
+
+	async handleEvent(event: StreamEvent) {
+		// If we're in the middle of backfilling
+		if (this.#backfilling) {
+			// Queue this event for later
+			this.#queue.push(event);
+		} else {
+			// Materialize the event
+			await this.#materializeEvent(event);
+		}
+	}
+
+	async #materializeEvent(event: StreamEvent) {
+		if (!sqliteWorker) throw 'No Sqlite worker';
+		if (!this.#latestEvent) throw 'latest event not initialized';
+		if (event.idx != (this.#latestEvent || 0) + 1) throw 'Unexpected event IDX';
+
+		for (const { sql, params } of this.#materializer(this.#streamid, event)) {
+			await sqliteWorker.runQuery(sql, params);
+		}
+		this.#latestEvent += 1;
+		await db.streamCursors.put({ streamId: this.#streamid, latestEvent: this.#latestEvent });
+	}
 }
