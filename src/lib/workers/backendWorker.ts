@@ -23,6 +23,9 @@ import { workerOauthClient } from './oauth';
 import type { LiveQueryMessage } from '$lib/setup-sqlite';
 import { Hash } from './encoding';
 
+// TODO: figure out why refreshing one tab appears to cause a re-render of the spaces list live
+// query in the other tab.
+
 /**
  * Check whether or not we are executing in a shared worker.
  *
