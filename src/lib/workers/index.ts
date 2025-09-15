@@ -36,6 +36,7 @@ export type BackendInterface = {
 	oauthCallback(searchParams: string): Promise<void>;
 	getProfile(did?: string): Promise<ProfileViewDetailed | undefined>;
 	runQuery(sql: string, params?: BindingSpec): Promise<unknown>;
+	dangerousCompletelyDestroyDatabase(opts: { yesIAmSure: true }): Promise<unknown>;
 	createLiveQuery(id: string, port: MessagePort, sql: string, params?: BindingSpec): Promise<void>;
 	sendEvent(streamId: string, payload: EventType): Promise<void>;
 	setActiveSqliteWorker(port: MessagePort): Promise<void>;

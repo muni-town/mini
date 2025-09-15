@@ -44,6 +44,7 @@ export function messagePortInterface<Local extends HalfInterface, Remote extends
 						const resp = await handler(...parameters);
 						messagePort.postMessage(['response', requestId, 'resolve', resp]);
 					} catch (e) {
+						console.error(e);
 						messagePort.postMessage(['response', requestId, 'reject', e]);
 					}
 				}

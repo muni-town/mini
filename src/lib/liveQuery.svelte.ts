@@ -3,13 +3,19 @@ import { backend } from './workers';
 
 export class LiveQuery<Row extends { [key: string]: unknown }> {
 	result: { rows: Row[] } | undefined = $state(undefined);
+	error: string | undefined = $state(undefined);
 
 	constructor(sql: string | (() => string), params?: () => BindingSpec) {
 		$effect(() => {
 			const id = crypto.randomUUID();
 			const channel = new MessageChannel();
 			channel.port1.onmessage = (ev) => {
-				this.result = ev.data;
+				if ('__sqliteError' in ev.data) {
+					this.error = ev.data.__sqliteError;
+					console.warn(`Sqlite error in live query (${sql}): ${this.error}`)
+				} else {
+					this.result = ev.data;
+				}
 			};
 			const p = params?.();
 

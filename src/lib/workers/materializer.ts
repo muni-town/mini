@@ -1,61 +1,58 @@
 import type { SqlStatement, StreamEvent, MaterializerConfig } from './backendWorker';
-import { _void, str, Enum, Struct, enhanceCodec } from 'scale-ts';
-
-const constantStr = <T extends string>(constStr: T) =>
-	enhanceCodec<string, T>(
-		str,
-		(s) => {
-			if (s == constStr) {
-				return s;
-			} else {
-				throw `Error encoding: expected "${constStr}" got "${s}"`;
-			}
-		},
-		(s) => {
-			if (s == constStr) {
-				return constStr;
-			} else {
-				throw `Error decoding: expected "${constStr}" got "${s}"`;
-			}
-		}
-	);
+import { _void, str, Struct, Option } from 'scale-ts';
+import { Hash, Kinds } from './encoding';
 
 export type EventType = ReturnType<(typeof eventCodec)['dec']>;
-export const eventCodec = Struct({
-	namespace: constantStr('space.roomy'),
-	event: Enum({
-		joinSpace: str,
-		leaveSpace: str
-	})
-});
 
 export const config: MaterializerConfig = {
 	initSql: [
 		{
-			sql: 'create table if not exists spaces (id text primary key, stream text, avatar text, name text, description text )'
+			sql: 'create table if not exists spaces (id blob primary key, stream blob, name text, avatar text, description text )'
 		}
 	],
 	materializer
 };
 
+export const eventCodec = Kinds({
+	'space.roomy.joinSpace.0': Hash,
+	'space.roomy.leaveSpace.0': Hash,
+	'space.roomy.spaceInfo.0': Struct({
+		name: Option(str),
+		avatar: Option(str),
+		description: Option(str)
+	})
+});
+
 export function materializer(streamId: string, streamEvent: StreamEvent): SqlStatement[] {
 	const statements: SqlStatement[] = [];
 
 	try {
-		const { event } = eventCodec.dec(streamEvent.payload);
+		const event = eventCodec.dec(streamEvent.payload);
 
-		if (event.tag == 'joinSpace') {
+		if (event.kind == 'space.roomy.joinSpace.0') {
 			statements.push({
-				sql: 'insert into spaces (id) values (?)',
-				params: [event.value]
+				sql: 'insert or ignore into spaces (id, stream) values (?, ?)',
+				params: [Hash.enc(event.data), Hash.enc(streamId)]
 			});
-		} else if (event.tag == 'leaveSpace') {
+		} else if (event.kind == 'space.roomy.leaveSpace.0') {
 			statements.push({
-				sql: 'delete from spaces where id = ?',
-				params: [event.value]
+				sql: 'delete from spaces where id = ? and stream = ?',
+				params: [Hash.enc(event.data), Hash.enc(streamId)]
+			});
+		} else if (event.kind == 'space.roomy.spaceInfo.0') {
+			statements.push({
+				sql: 'update spaces set name = :name, avatar = :avatar, description = :description where id = :id',
+				params: {
+					':id': Hash.enc(streamId),
+					':name': event.data.name,
+					':avatar': event.data.avatar,
+					':description': event.data.description
+				}
 			});
 		}
-	} catch (e) {}
+	} catch (e) {
+		console.warn('Could not parse event, ignoring:', e);
+	}
 
 	return statements;
 }

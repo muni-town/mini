@@ -53,6 +53,8 @@ export async function initializeDatabase(dbName: string): Promise<void> {
 			},
 			0
 		);
+		db.exec('pragma locking_mode = exclusive;');
+		db.exec('pragma journal_mode = wal');
 	})();
 	await initPromise;
 }
@@ -127,16 +129,20 @@ export async function createLiveQuery(
 	sql: string,
 	params?: BindingSpec
 ) {
-	const { statement, actions } = await prepareSql(sql, params);
-	const tables = [];
-	for (const { actionCode, arg1: tableName } of actions) {
-		if (actionCode == 'SQLITE_READ' && tableName) {
-			tables.push(tableName);
+	try {
+		const { statement, actions } = await prepareSql(sql, params);
+		const tables = [];
+		for (const { actionCode, arg1: tableName } of actions) {
+			if (actionCode == 'SQLITE_READ' && tableName) {
+				tables.push(tableName);
+			}
 		}
+		liveQueries.set(id, { port, tables, statement });
+		const result = runPreparedStatement(statement);
+		port.postMessage(result);
+	} catch (e: any) {
+		port.postMessage({ __sqliteError: e.toString() });
 	}
-	liveQueries.set(id, { port, tables, statement });
-	const result = runPreparedStatement(statement);
-	port.postMessage(result);
 }
 
 async function updateLiveQueries(actions: Action[]) {

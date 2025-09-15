@@ -4,7 +4,7 @@
 	import { backendStatus } from '$lib/workers/index';
 	import { LiveQuery } from '$lib/liveQuery.svelte';
 	import ShapesAvatar from '$lib/components/ShapesAvatar.svelte';
-	import { json } from '@sveltejs/kit';
+	import { Hash } from '$lib/workers/encoding';
 
 	let loginHandle = $state('');
 	let loginLoading = $state(false);
@@ -15,7 +15,7 @@
 
 	let spaces = new LiveQuery<{ id: string; name?: string; avatar?: string }>(
 		'select id, name, avatar from spaces where stream = ?',
-		() => [backendStatus.personalStreamId]
+		() => [backendStatus.personalStreamId && Hash.enc(backendStatus.personalStreamId)]
 	);
 
 	let { children } = $props();
@@ -59,14 +59,14 @@
 		<div class="flex max-h-full min-h-0 flex-grow flex-nowrap gap-4">
 			<div class="bg-base-100 flex w-20 flex-col gap-4 p-4 shadow-sm">
 				{#each spaces.result?.rows || [] as space (space.id)}
-					<div class="tooltip tooltip-right" data-tip={space.name || space.id}>
-						<a href={`/${space.id}`}>
+					<div class="tooltip tooltip-right" data-tip={space.name || Hash.dec(space.id)}>
+						<a href={`/${Hash.dec(space.id)}`}>
 							<div class="avatar transition-all hover:scale-110">
 								<div class="rounded">
 									{#if space.avatar}
 										<img alt="avatar" src={space.avatar} />
 									{:else}
-										<ShapesAvatar class="w-full" seed={space.id} />
+										<ShapesAvatar class="w-full" seed={Hash.dec(space.id)} />
 									{/if}
 								</div>
 							</div>
@@ -92,7 +92,8 @@
 					>
 					<pre class="h-full overflow-y-auto">{JSON.stringify(result, undefined, '  ')}</pre>
 				</div>
-				<!-- {@render children()} -->
+
+				{@render children()}
 			{:else}
 				<div class="flex w-full flex-col items-center justify-center">
 					<h2 class="mb-3 text-xl font-bold">Login With Bluesky / ATProto Handle</h2>
