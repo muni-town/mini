@@ -18,6 +18,7 @@ export default defineConfig({
 				server.middlewares.use((req, res, next) => {
 					res.setHeader('Cross-Origin-Embedder-Policy', 'credentialless');
 					res.setHeader('Cross-Origin-Opener-Policy', 'same-origin');
+					res.setHeader('Permissions-Policy', 'cross-origin-isolated=*');
 					next();
 				});
 			}

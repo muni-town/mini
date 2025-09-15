@@ -14,8 +14,8 @@ import {
 	type Encoder,
 	type EncoderType,
 	internal
-} from 'scale-ts';
-import { createCodec, str, Tuple } from 'scale-ts';
+} from '@zicklag/scale-ts';
+import { createCodec, str, Tuple } from '@zicklag/scale-ts';
 
 /** encoding */
 const enc = <O extends { [key: string]: Encoder<any> }>(

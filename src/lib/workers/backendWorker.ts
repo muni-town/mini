@@ -7,11 +7,11 @@ import { messagePortInterface, reactiveWorkerState, type MessagePortApi } from '
 
 import {
 	atprotoLoopbackClientMetadata,
-	BrowserOAuthClient,
 	buildLoopbackClientId,
 	type OAuthClientMetadataInput,
 	type OAuthSession
 } from '@atproto/oauth-client-browser';
+import { OAuthClient } from '@atproto/oauth-client';
 import { Agent } from '@atproto/api';
 import type { ProfileViewDetailed } from '@atproto/api/dist/client/types/app/bsky/actor/defs';
 import Dexie, { type EntityTable } from 'dexie';
@@ -19,6 +19,7 @@ import Dexie, { type EntityTable } from 'dexie';
 import { lexicons } from '../lexicons';
 import type { BindingSpec } from '@sqlite.org/sqlite-wasm';
 import { config as materializerConfig, eventCodec, type EventType } from './materializer';
+import { workerOauthClient } from './oauth';
 
 /**
  * Check whether or not we are executing in a shared worker.
@@ -84,7 +85,7 @@ const sqliteWorkerReady = new Promise((r) => (setSqliteWorkerReady = r as () => 
  * they are changed.
  * */
 class Backend {
-	#oauth: BrowserOAuthClient | undefined;
+	#oauth: OAuthClient | undefined;
 	#agent: Agent | undefined;
 	#session: OAuthSession | undefined;
 	#profile: ProfileViewDetailed | undefined;
@@ -107,7 +108,7 @@ class Backend {
 		return this.#oauth;
 	}
 
-	setOauthClient(oauth: BrowserOAuthClient) {
+	setOauthClient(oauth: OAuthClient) {
 		this.#oauth = oauth;
 
 		if (oauth) {
@@ -310,7 +311,7 @@ function connectMessagePort(port: MessagePortApi) {
 	});
 }
 
-async function createOauthClient(): Promise<BrowserOAuthClient> {
+async function createOauthClient(): Promise<OAuthClient> {
 	// Build the client metadata
 	let clientMetadata: OAuthClientMetadataInput;
 	if (import.meta.env.DEV) {
@@ -340,11 +341,7 @@ async function createOauthClient(): Promise<BrowserOAuthClient> {
 		clientMetadata = await resp.json();
 	}
 
-	return new BrowserOAuthClient({
-		responseMode: 'query',
-		handleResolver: 'https://resolver.roomy.chat',
-		clientMetadata
-	});
+	return workerOauthClient(clientMetadata);
 }
 
 const personalModuleId = '74191e22741f299ae69b9f234b31832397ee29c18974eb82a934df827aa0516a';

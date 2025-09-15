@@ -23,7 +23,7 @@ export class LiveQuery<Row extends { [key: string]: unknown }> {
 
 			// Obtain a lock to this query so that the shared worker can know when a live query is
 			// no longer needed and it can destroy it.
-			let dropLock: () => void;
+			let dropLock: () => void = () => {};
 			navigator.locks.request(id, async (_lock) => {
 				backend.createLiveQuery(id, channel.port2, s, p);
 				await new Promise((r) => (dropLock = r as any));

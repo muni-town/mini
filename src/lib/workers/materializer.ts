@@ -1,5 +1,5 @@
 import type { SqlStatement, StreamEvent, MaterializerConfig } from './backendWorker';
-import { _void, str, Struct, Option } from 'scale-ts';
+import { _void, str, Struct, Option } from '@zicklag/scale-ts';
 import { Hash, Kinds } from './encoding';
 
 export type EventType = ReturnType<(typeof eventCodec)['dec']>;
