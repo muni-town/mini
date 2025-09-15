@@ -14,7 +14,7 @@
 	let lockedTab = $derived(sqliteStatus.isActiveWorker == false && !hasSharedWorker);
 
 	let spaces = new LiveQuery<{ id: string; name?: string; avatar?: string }>(
-		'select id, name, avatar from spaces where stream = ?',
+		'select id, name, avatar from spaces where stream = ? and hidden = 0',
 		() => [backendStatus.personalStreamId && Hash.enc(backendStatus.personalStreamId)]
 	);
 

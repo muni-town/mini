@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 /// <reference lib="webworker" />
 
-import { LeafClient } from '@muni-town/leaf-client';
+import { LeafClient, type IncomingEvent } from '@muni-town/leaf-client';
 import type { BackendInterface, BackendStatus, SqliteWorkerInterface } from './index';
 import { messagePortInterface, reactiveWorkerState, type MessagePortApi } from './workerMessaging';
 
@@ -20,6 +20,8 @@ import { lexicons } from '../lexicons';
 import type { BindingSpec } from '@sqlite.org/sqlite-wasm';
 import { config as materializerConfig, eventCodec, type EventType } from './materializer';
 import { workerOauthClient } from './oauth';
+import type { LiveQueryMessage } from '$lib/setup-sqlite';
+import { Hash } from './encoding';
 
 /**
  * Check whether or not we are executing in a shared worker.
@@ -90,6 +92,8 @@ class Backend {
 	#session: OAuthSession | undefined;
 	#profile: ProfileViewDetailed | undefined;
 	#leafClient: LeafClient | undefined;
+	personalSpaceMaterializer: StreamMaterializer | undefined;
+	openSpacesMaterializer: OpenSpacesMaterializer | undefined;
 
 	#oauthReady: Promise<void>;
 	#resolveOauthReady: () => void = () => {};
@@ -352,7 +356,9 @@ async function initializeLeafClient(client: LeafClient) {
 	client.on('disconnect', () => {
 		console.log('Leaf: disconnected');
 		status.leafConnected = false;
-		materializers.clear();
+		state.personalSpaceMaterializer = undefined;
+		state.openSpacesMaterializer?.close();
+		state.openSpacesMaterializer = undefined;
 	});
 	client.on('authenticated', async (did) => {
 		console.log('Leaf: authenticated as', did);
@@ -395,16 +401,81 @@ async function initializeLeafClient(client: LeafClient) {
 		client.subscribe(streamId);
 		console.log('Subscribed to stream:', streamId);
 
-		materializers.set(streamId, new StreamMaterializer(streamId, materializerConfig));
+		state.personalSpaceMaterializer = new StreamMaterializer(streamId, materializerConfig);
+		state.openSpacesMaterializer = new OpenSpacesMaterializer(streamId);
 
 		status.leafConnected = true;
 	});
 	client.on('event', (event) => {
-		const materializer = materializers.get(event.stream);
+		if (event.stream == state.personalSpaceMaterializer?.streamId) {
+			state.personalSpaceMaterializer.handleEvent(event);
+		}
+		state.openSpacesMaterializer?.handleEvent(event);
+	});
+}
+
+class OpenSpacesMaterializer {
+	#liveQueryId: string;
+	#streamId: string;
+	#spaceMaterializers: Map<string, StreamMaterializer> = new Map();
+
+	constructor(streamId: string) {
+		this.#streamId = streamId;
+		this.#liveQueryId = crypto.randomUUID();
+		this.createLiveQuery();
+	}
+
+	createLiveQuery() {
+		if (!sqliteWorker) throw 'Sqlite worker not ready';
+
+		const channel = new MessageChannel();
+		channel.port1.onmessage = (ev) => {
+			const data: LiveQueryMessage = ev.data;
+			if ('error' in data) {
+				console.warn('Error in spaces list query', data.error);
+			} else if ('rows' in data) {
+				const spaces = data.rows as { id: Uint8Array }[];
+				this.updateSpaceList(spaces.map(({ id }) => Hash.dec(id)));
+			}
+		};
+
+		sqliteWorker.createLiveQuery(
+			this.#liveQueryId,
+			channel.port2,
+			'select id from spaces where stream = ? and hidden = 0',
+			[Hash.enc(this.#streamId)]
+		);
+	}
+
+	updateSpaceList(spaces: string[]) {
+		const openSpaceSet = new Set(this.#spaceMaterializers.keys());
+		const newSpaceSet = new Set(spaces);
+		const spacesToClose = openSpaceSet.difference(newSpaceSet);
+		const spacesToOpen = newSpaceSet.difference(openSpaceSet);
+
+		for (const spaceToClose of spacesToClose) {
+			this.#spaceMaterializers.delete(spaceToClose);
+			state.leafClient?.unsubscribe(spaceToClose);
+		}
+		for (const spaceToOpen of spacesToOpen) {
+			this.#spaceMaterializers.set(
+				spaceToOpen,
+				new StreamMaterializer(spaceToOpen, materializerConfig)
+			);
+			state.leafClient?.subscribe(spaceToOpen);
+		}
+	}
+
+	handleEvent(event: IncomingEvent) {
+		const materializer = this.#spaceMaterializers.get(event.stream);
 		if (materializer) {
 			materializer.handleEvent(event);
 		}
-	});
+	}
+
+	close() {
+		sqliteWorker?.deleteLiveQuery(this.#liveQueryId);
+	}
 }
 
 export type SqlStatement = {
@@ -422,8 +493,6 @@ export type MaterializerConfig = {
 	initSql: SqlStatement[];
 	materializer: (streamId: string, event: StreamEvent) => SqlStatement[];
 };
-
-const materializers: Map<string, StreamMaterializer> = new Map();
 
 class StreamMaterializer {
 	#streamid: string;

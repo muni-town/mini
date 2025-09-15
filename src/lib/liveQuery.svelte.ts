@@ -1,5 +1,6 @@
 import type { BindingSpec } from '@sqlite.org/sqlite-wasm';
 import { backend } from './workers';
+import type { LiveQueryMessage } from './setup-sqlite';
 
 export class LiveQuery<Row extends { [key: string]: unknown }> {
 	result: { rows: Row[] } | undefined = $state(undefined);
@@ -10,11 +11,12 @@ export class LiveQuery<Row extends { [key: string]: unknown }> {
 			const id = crypto.randomUUID();
 			const channel = new MessageChannel();
 			channel.port1.onmessage = (ev) => {
-				if ('__sqliteError' in ev.data) {
-					this.error = ev.data.__sqliteError;
-					console.warn(`Sqlite error in live query (${sql}): ${this.error}`)
-				} else {
-					this.result = ev.data;
+				const data: LiveQueryMessage = ev.data;
+				if ('error' in data) {
+					this.error = data.error;
+					console.warn(`Sqlite error in live query (${sql}): ${this.error}`);
+				} else if ('rows' in data) {
+					this.result = data as { rows: Row[] };
 				}
 			};
 			const p = params?.();

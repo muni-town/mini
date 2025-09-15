@@ -118,6 +118,7 @@ function runPreparedStatement(
 	return columnCount > 0 ? { rows } : { ok: true };
 }
 
+export type LiveQueryMessage = { ok: true } | { rows: unknown[] } | { error: string };
 const liveQueries: Map<
 	string,
 	{ port: MessagePort; tables: string[]; statement: PreparedStatement }
@@ -139,9 +140,9 @@ export async function createLiveQuery(
 		}
 		liveQueries.set(id, { port, tables, statement });
 		const result = runPreparedStatement(statement);
-		port.postMessage(result);
+		port.postMessage(result satisfies LiveQueryMessage);
 	} catch (e: any) {
-		port.postMessage({ __sqliteError: e.toString() });
+		port.postMessage({ error: e.toString() } satisfies LiveQueryMessage);
 	}
 }
 

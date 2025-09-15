@@ -2,6 +2,8 @@
 	import { backend, backendStatus } from '$lib/workers';
 
 	let spaceId = $state('');
+	let spaceName = $state('');
+	let spaceAvatar = $state('');
 </script>
 
 <form class="flex flex-col justify-start">
@@ -26,6 +28,25 @@
 			});
 		}}>Leave Space</button
 	>
+</form>
+
+<form
+	class="flex flex-col justify-start"
+	onsubmit={() => {
+		backend.sendEvent(spaceId, {
+			kind: 'space.roomy.spaceInfo.0',
+			data: {
+				name: spaceName || undefined,
+				avatar: spaceAvatar || undefined,
+				description: undefined
+			}
+		});
+	}}
+>
+	<input class="input" placeholder="space id" bind:value={spaceId} />
+	<input class="input" placeholder="name" bind:value={spaceName} />
+	<input class="input" placeholder="avatar" bind:value={spaceAvatar} />
+	<button class="btn">Set Space Info</button>
 </form>
 
 <button
